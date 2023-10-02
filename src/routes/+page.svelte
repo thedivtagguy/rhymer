@@ -7,7 +7,7 @@
 	const chain = writable([]);
 
 	onMount(async () => {
-		dailyWord = 'fairy'; // Replace with dynamic logic to get a daily word
+		dailyWord = 'cat'; // Replace this with dynamic logic to fetch a daily word
 		const res = await fetch(`https://rhymetimewords.netlify.app/words/debug/${dailyWord}.json`);
 		const data = await res.json();
 		rhymes = data.words.map((obj) => obj.word);

@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
-	import client from '../lib/cloyseus';
+	import client from '$lib/colyseus';
 
 	let room;
 	const chain = writable([]);

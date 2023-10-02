@@ -1,11 +1,11 @@
 const http = require('http').createServer();
 const { Server } = require('colyseus');
-const YourRoomSchema = require('./YourRoomSchema');
+const RoomSchema = require('./RoomSchema');
 
 const gameServer = new Server({
 	server: http
 });
 
-gameServer.define('your_room_schema', YourRoomSchema);
+gameServer.define('your_room_schema', RoomSchema);
 
 gameServer.listen(2567);
