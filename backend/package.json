@@ -2,7 +2,7 @@
 	"name": "rhyme-time-backend",
 	"version": "1.0.0",
 	"scripts": {
-		"start": "node index.js",
+		"start-server": "node index.js",
 		"build": "echo 'No build step'"
 	},
 	"dependencies": {
