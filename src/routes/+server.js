@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { RHYME_ROOM_ID } from './shared';
 
 function getDefaultPlayers() {
@@ -26,10 +25,11 @@ export default class RhymeSession {
 			await this.party.storage.put('players', getDefaultPlayers());
 			const gameState = getNewWord();
 
-			const response = await axios.get(
-				`https://rhymetimewords.netlify.app/words/debug/${gameState.word}.json`
-			);
-			gameState.validRhymes = response.data.words.map((item) => item.word);
+			await fetch(`https://rhymetimewords.netlify.app/words/debug/${gameState.word}.json`)
+				.then((res) => res.json())
+				.then((data) => {
+					gameState.validRhymes = data.words.map((item) => item.word);
+				});
 
 			await this.party.storage.put('gameState', gameState);
 		}
