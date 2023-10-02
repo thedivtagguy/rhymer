@@ -11,16 +11,17 @@
 			newRhyme = '';
 		}
 	}
+
 	onMount(() => {
 		partySocket = new PartySocket({
-			host: 'https://rhymetime.thedivtagguy.partykit.dev/',
-			room: 'rhyme-room'
+			host: 'rhymetime.thedivtagguy.partykit.dev',
+			room: 'roomid' // Make sure this ID matches the server room ID
 		});
 
 		partySocket.addEventListener('message', (e) => {
 			const msg = JSON.parse(e.data);
-
 			if (msg.type === 'sync') {
+				console.log('Received sync message', msg); // Debug line
 				gameState = msg.gameState;
 			} else if (msg.type === 'update') {
 				gameState = { ...gameState, validRhymes: [...gameState.validRhymes, msg.rhyme.word] };

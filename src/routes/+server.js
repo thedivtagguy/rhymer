@@ -22,6 +22,7 @@ export default class RhymeSession {
 
 	async onStart() {
 		if (this.party.id === RHYME_ROOM_ID) {
+			console.log('onStart called');
 			await this.party.storage.put('players', getDefaultPlayers());
 			const gameState = getNewWord();
 
@@ -37,7 +38,9 @@ export default class RhymeSession {
 	async onConnect(connection) {
 		if (this.party.id === RHYME_ROOM_ID) {
 			const gameState = await this.party.storage.get('gameState');
+			console.log('Server gameState:', gameState); // Debugging line
 			connection.send(JSON.stringify({ type: 'sync', gameState }));
+			connection.send(JSON.stringify({ type: 'welcome', message: 'Welcome to Rhyme Time!' }));
 		}
 	}
 
