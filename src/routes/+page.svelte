@@ -1,33 +1,57 @@
 <script>
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
+	import PartySocket from 'partysocket';
 
-	let dailyWord = '';
-	let rhymes = [];
-	const chain = writable([]);
-
-	onMount(async () => {
-		dailyWord = 'cat'; // Replace this with dynamic logic to fetch a daily word
-		const res = await fetch(`https://rhymetimewords.netlify.app/words/debug/${dailyWord}.json`);
-		const data = await res.json();
-		rhymes = data.words.map((obj) => obj.word);
-	});
-
-	const addToChain = (word) => {
-		if (rhymes.includes(word)) {
-			$chain = [...$chain, word];
-		} else {
-			alert('Game Over! Invalid rhyme.');
-			chain.set([]);
+	let gameState = null;
+	let newRhyme = '';
+	let partySocket;
+	function submitRhyme() {
+		if (newRhyme) {
+			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: { word: newRhyme } }));
+			newRhyme = '';
 		}
-	};
+	}
+	onMount(() => {
+		partySocket = new PartySocket({
+			host: 'https://rhymetime.thedivtagguy.partykit.dev/',
+			room: 'rhyme-room'
+		});
+
+		partySocket.addEventListener('message', (e) => {
+			const msg = JSON.parse(e.data);
+
+			if (msg.type === 'sync') {
+				gameState = msg.gameState;
+			} else if (msg.type === 'update') {
+				gameState = { ...gameState, validRhymes: [...gameState.validRhymes, msg.rhyme.word] };
+			}
+		});
+	});
 </script>
 
-<h1>Rhyme Time</h1>
-<h2>Daily word: {dailyWord}</h2>
-<input placeholder="Enter rhyme" on:blur={(e) => addToChain(e.target.value)} />
-<ul>
-	{#each $chain as word}
-		<li>{word}</li>
-	{/each}
-</ul>
+<main>
+	<h1>Rhyme Time</h1>
+
+	{#if gameState}
+		<div>
+			<h2>Current Word: {gameState.word}</h2>
+			<p>Players: {gameState.players}</p>
+		</div>
+
+		<div>
+			<h3>Valid Rhymes:</h3>
+			<ul>
+				{#each gameState.validRhymes as rhyme}
+					<li>{rhyme}</li>
+				{/each}
+			</ul>
+		</div>
+
+		<div>
+			<input type="text" bind:value={newRhyme} placeholder="Enter a rhyme..." />
+			<button on:click={submitRhyme}>Submit</button>
+		</div>
+	{:else}
+		<p>Loading...</p>
+	{/if}
+</main>
