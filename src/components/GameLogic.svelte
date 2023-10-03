@@ -14,6 +14,11 @@
 	let myTurn = true;
 	let pressedKeys = [];
 	let currentUserId;
+	let nextPlayerId;
+	let placeholderText = 'Enter a rhyme...';
+	$: if (gameState) {
+		placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
+	}
 
 	let categories = {
 		okay: {
@@ -35,6 +40,7 @@
 	};
 
 	function submitRhyme(newRhymeValue, myTurn, id, userId) {
+		if (!myTurn) return;
 		if (newRhymeValue && (myTurn || gameState.session.players === 0)) {
 			const newGuess = { word: newRhymeValue };
 			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: id, user: userId }));
@@ -67,8 +73,8 @@
 				gameState = msg.gameState;
 				gameState.session.room = id;
 				currentUserId = msg.currentPlayerId;
-			} else if (msg.type === 'update') {
-				myTurn = msg.nextPlayerId === partySocket.connection.id;
+				nextPlayerId = msg.nextPlayerId;
+				myTurn = msg.nextPlayerId === userId;
 			}
 		});
 	});
@@ -88,7 +94,7 @@
 		}
 	};
 
-	$: console.log(currentUserId);
+	$: console.log(myTurn);
 </script>
 
 <main>
@@ -96,7 +102,6 @@
 		<div class="room-info">
 			<p class="players">Players: <span class="player-no">{players}</span></p>
 			<p class="room"><span class="room-name">{gameState.session.room}</span></p>
-			<p>{userId}</p>
 		</div>
 
 		<div class="timeline">
@@ -138,11 +143,11 @@
 				type="text"
 				class="line-input"
 				bind:value={newRhyme}
-				placeholder="Enter a rhyme..."
+				placeholder={placeholderText}
 				disabled={!myTurn || gameState.session.players === 0}
 				on:keydown={(e) => {
 					if (e.key === 'Enter') {
-						submitRhyme(newRhyme, myTurn, id);
+						submitRhyme(newRhyme, myTurn, id, userId);
 					} else if (e.key === 'Backspace') {
 						newRhyme = newRhyme.slice(0, -1);
 					}
@@ -233,7 +238,7 @@
 	.timeline-guess-box.my-box {
 		position: relative;
 		border: 1px solid #d2d2d2;
-		background-color: #616161;
+		background-color: #595959;
 		color: #eeeeee;
 		border-radius: 8px;
 		padding: 10px 20px;

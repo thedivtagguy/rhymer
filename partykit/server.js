@@ -68,7 +68,8 @@ function getInitialGameState() {
 		session: {
 			players: 0,
 			room: '',
-			startedAt: new Date().getTime()
+			startedAt: new Date().getTime(),
+			currentPlayerId: null
 		}
 	};
 }
@@ -119,13 +120,21 @@ export default class RhymeSession {
 		gameState.session.players = players.size; // assuming gameState has been initialized and has a session object
 		gameState.session.room = this.party.id;
 
+		// Check the size of the players set and set the currentPlayerId if it's the first player
+		if (players.size === 1) {
+			gameState.session.currentPlayerId = connection.id;
+		}
+
 		await this.party.storage.put('players', players);
 		await this.party.storage.put('gameState', gameState);
+
 		this.party.broadcast(
-			JSON.stringify({ type: 'setConnectionID', currentPlayerId: connection.id })
-		);
-		this.party.broadcast(
-			JSON.stringify({ type: 'sync', gameState, currentPlayerId: connection.id })
+			JSON.stringify({
+				type: 'sync',
+				gameState,
+				currentPlayerId: connection.id,
+				nextPlayerId: gameState.session.currentPlayerId
+			})
 		);
 	}
 
@@ -169,6 +178,15 @@ export default class RhymeSession {
 		this.party.broadcast(
 			JSON.stringify({ type: 'sync', gameState, currentPlayerId: connection.id })
 		);
+
+		if (gameState.session.currentPlayerId === connection.id) {
+			gameState.session.currentPlayerId = getNextPlayerId(connection.id, players);
+		}
+		await this.party.storage.put('gameState', gameState);
+
+		this.party.broadcast(
+			JSON.stringify({ type: 'sync', gameState, nextPlayerId: gameState.session.currentPlayerId })
+		);
 	}
 
 	async onClose(connection) {
@@ -191,5 +209,19 @@ export default class RhymeSession {
 		}
 		this.party.broadcast(JSON.stringify({ type: 'player_left', playerId: connection.id }));
 		this.party.broadcast(JSON.stringify({ type: 'sync', gameState, currentPlayerId: null }));
+
+		if (gameState.session.currentPlayerId === connection.id) {
+			gameState.session.currentPlayerId = getNextPlayerId(connection.id, players);
+		}
+		await this.party.storage.put('gameState', gameState);
+
+		this.party.broadcast(
+			JSON.stringify({
+				type: 'sync',
+				gameState,
+				currentPlayerId: null,
+				nextPlayerId: gameState.session.currentPlayerId
+			})
+		);
 	}
 }
