@@ -1,16 +1,21 @@
-import { RHYME_ROOM_ID } from './shared';
+import { words } from './shared';
 
 function getDefaultPlayers() {
 	return new Set();
 }
 
 function getNewWord() {
-	const word = 'fairy';
+	const today = new Date();
+	const seed = today.getDate() + (today.getMonth() + 1) * 100 + today.getFullYear() * 10000;
+	const index = seed % words.length;
+	const word = words[index];
+
 	return {
 		word: word,
 		validRhymes: [],
 		players: 0,
-		startedAt: new Date().getTime()
+		startedAt: new Date().getTime(),
+		room: ''
 	};
 }
 
@@ -20,47 +25,52 @@ export default class RhymeSession {
 	}
 
 	async onStart() {
-		if (this.party.id === RHYME_ROOM_ID) {
-			console.log('onStart called');
-			await this.party.storage.put('players', getDefaultPlayers());
-			const gameState = getNewWord();
+		console.log('onStart called');
+		await this.party.storage.put('players', getDefaultPlayers());
+		const gameState = getNewWord();
+		gameState.room = this.party.room; // Include room information in gameState
 
-			await fetch(`https://rhymetimewords.netlify.app/words/debug/${gameState.word}.json`)
-				.then((res) => res.json())
-				.then((data) => {
-					gameState.validRhymes = data.words.map((item) => item.word);
-				});
+		await fetch(`https://rhymetimewords.netlify.app/words/debug/${gameState.word}.json`)
+			.then((res) => res.json())
+			.then((data) => {
+				gameState.validRhymes = data.words.map((item) => item.word);
+			});
 
-			await this.party.storage.put('gameState', gameState);
-		}
+		await this.party.storage.put('gameState', gameState);
 	}
 
 	async onConnect(connection) {
-		if (this.party.id === RHYME_ROOM_ID) {
-			const gameState = await this.party.storage.get('gameState');
-			console.log('Server gameState:', gameState); // Debugging line
-			connection.send(JSON.stringify({ type: 'sync', gameState }));
-			connection.send(JSON.stringify({ type: 'welcome', message: 'Welcome to Rhyme Time!' }));
-		}
+		const players = await this.party.storage.get('players');
+		players.add(connection.id); // Add new player to the set
+		const gameState = await this.party.storage.get('gameState');
+		gameState.players = players.size; // Update the player count
+		gameState.room = this.party.room; // Include room information in gameState
+
+		await this.party.storage.put('players', players); // Save updated players set
+		await this.party.storage.put('gameState', gameState); // Save updated gameState
+
+		connection.send(JSON.stringify({ type: 'sync', gameState }));
+		connection.send(JSON.stringify({ type: 'welcome', message: 'Welcome to Rhyme Time!' }));
 	}
 
 	async onMessage(message, connection) {
-		if (this.party.id === RHYME_ROOM_ID) {
-			const msg = JSON.parse(message);
-			const players = await this.party.storage.get('players');
-			const gameState = await this.party.storage.get('gameState');
+		const msg = JSON.parse(message);
+		const players = await this.party.storage.get('players');
+		const gameState = await this.party.storage.get('gameState');
 
-			if (msg.type === 'rhyme') {
-				if (gameState.validRhymes.includes(msg.rhyme.word)) {
-					players.add(connection.id);
-					gameState.players = players.size;
-					await this.party.storage.put('players', players);
-					await this.party.storage.put('gameState', gameState);
+		if (msg.type === 'rhyme' && msg.room === this.party.room) {
+			if (gameState.validRhymes.includes(msg.rhyme.word)) {
+				players.add(connection.id);
+				gameState.players = players.size;
 
-					this.party.broadcast(JSON.stringify({ type: 'update', rhyme: msg.rhyme }));
-				} else {
-					connection.send(JSON.stringify({ type: 'error', message: 'Invalid rhyme' }));
-				}
+				await this.party.storage.put('players', players);
+				await this.party.storage.put('gameState', gameState);
+
+				this.party.broadcast(
+					JSON.stringify({ type: 'update', rhyme: msg.rhyme, nextPlayerId: connection.id })
+				);
+			} else {
+				connection.send(JSON.stringify({ type: 'error', message: 'Invalid rhyme' }));
 			}
 		}
 	}
