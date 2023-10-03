@@ -78,7 +78,7 @@ export default class RhymeSession {
 		if (msg.type === 'rhyme' && msg.room === this.party.room) {
 			console.log('Server: Handling rhyme type message');
 
-			if (gameState.validRhymes.includes(msg.rhyme.word)) {
+			if (msg.type === 'rhyme') {
 				gameState.guessedRhymes.push(msg.rhyme);
 
 				// Explicitly clone the array to ensure a new reference
