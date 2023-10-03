@@ -1,7 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
 	import PartySocket from 'partysocket';
-	import { page } from '$app/stores';
 
 	export let id = 'hello';
 	let gameState = null;
@@ -20,6 +19,11 @@
 			isCorrectGuess = isValidRhyme;
 			myTurn = gameState.players === 0 ? true : false;
 		}
+	}
+
+	let players;
+	$: if (gameState) {
+		players = gameState.players;
 	}
 
 	onMount(() => {
@@ -47,7 +51,7 @@
 	{#if gameState}
 		<div>
 			<h2>Current Word: {gameState.word}</h2>
-			<p>Players: {gameState.players}</p>
+			<p>Players: {players}</p>
 			<p>Room: {gameState.room}</p>
 		</div>
 

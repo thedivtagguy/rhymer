@@ -1,5 +1,3 @@
-import { words } from './shared';
-
 function getDefaultPlayers() {
 	return new Set();
 }
@@ -50,7 +48,7 @@ export default class RhymeSession {
 		await this.party.storage.put('gameState', gameState); // Save updated gameState
 
 		connection.send(JSON.stringify({ type: 'sync', gameState }));
-		connection.send(JSON.stringify({ type: 'welcome', message: 'Welcome to Rhyme Time!' }));
+		this.party.broadcast(JSON.stringify({ type: 'sync', gameState }));
 	}
 
 	async onMessage(message, connection) {
@@ -73,5 +71,22 @@ export default class RhymeSession {
 				connection.send(JSON.stringify({ type: 'error', message: 'Invalid rhyme' }));
 			}
 		}
+	}
+
+	async onClose(connection) {
+		const players = await this.party.storage.get('players');
+		if (players.has(connection.id)) {
+			players.delete(connection.id); // Remove the player from the set
+		}
+
+		const gameState = await this.party.storage.get('gameState');
+		gameState.players = players.size; // Update the player count
+
+		await this.party.storage.put('players', players); // Save updated players set
+		await this.party.storage.put('gameState', gameState); // Save updated gameState
+
+		// Optionally, notify all players about the change.
+		this.party.broadcast(JSON.stringify({ type: 'player_left', playerId: connection.id }));
+		this.party.broadcast(JSON.stringify({ type: 'sync', gameState }));
 	}
 }
