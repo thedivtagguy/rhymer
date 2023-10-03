@@ -1,9 +1,9 @@
 <script>
 	// @ts-nocheck
-	import { onMount } from 'svelte';
+	import { onMount, afterUpdate } from 'svelte';
 	import PartySocket from 'partysocket';
 	import Keyboard from './Keyboard.svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
 	import ShortUniqueId from 'short-unique-id';
 	const uid = new ShortUniqueId({ length: 10 });
 	let userId = uid.rnd();
@@ -15,6 +15,8 @@
 	let pressedKeys = [];
 	let currentUserId;
 	let nextPlayerId;
+	let newItemAdded = false;
+	let guessedRhymesLength = 0;
 	let placeholderText = 'Enter a rhyme...';
 	$: if (gameState) {
 		placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
@@ -45,6 +47,7 @@
 			const newGuess = { word: newRhymeValue };
 			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: id, user: userId }));
 			newRhyme = ''; // Clear the global variable
+			newItemAdded = true;
 		}
 	}
 
@@ -57,7 +60,6 @@
 		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
 		guessedRhymes = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
 	}
-
 	onMount(() => {
 		const isDevMode = process.env.NODE_ENV === 'development';
 		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
@@ -77,6 +79,8 @@
 				myTurn = msg.nextPlayerId === userId;
 			}
 		});
+
+		partySocket.send(JSON.stringify({ type: 'initialize', room: id, multi: true }));
 	});
 
 	const onKeydown = (event) => {
@@ -94,7 +98,16 @@
 		}
 	};
 
-	$: console.log(myTurn);
+	let timelineElement;
+	const scrollToBottom = async (node) => {
+		node.scroll({ top: node.scrollHeight + 300, behavior: 'smooth' });
+	};
+	afterUpdate(() => {
+		if (gameState && timelineElement && newItemAdded) {
+			scrollToBottom(timelineElement);
+			newItemAdded = false; // Reset the variable after scrolling
+		}
+	});
 </script>
 
 <main>
@@ -104,35 +117,31 @@
 			<p class="room"><span class="room-name">{gameState.session.room}</span></p>
 		</div>
 
-		<div class="timeline">
+		<div class="timeline" bind:this={timelineElement}>
 			{#each gameState.words as wordData}
-				<div class="timeline-item">
-					<div class="timeline-node">
-						<h2 class="target-word">{wordData.wordToRhyme.word}</h2>
-					</div>
-					<div class="timeline-guesses">
-						{#each wordData.wordToRhyme.guesses as guessedRhyme}
-							<li
-								class="timeline-guess-box"
-								class:my-box={guessedRhyme.playerId === userId}
-								in:slide={{ y: -20, duration: 500 }}
-							>
-								<span class="word-guess">
-									<svg height="20" width="20">
-										<circle
-											cx="10"
-											cy="10"
-											r="8"
-											fill={categories[guessedRhyme.category].fill}
-											stroke={categories[guessedRhyme.category].stroke}
-											stroke-width="1"
-										/>
-									</svg>
-								</span>
-								{guessedRhyme.word}
-							</li>
-						{/each}
-					</div>
+				<h2 class="target-word">{wordData.wordToRhyme.word}</h2>
+				<div class="timeline-guesses">
+					{#each wordData.wordToRhyme.guesses as guessedRhyme}
+						<li
+							class="timeline-guess-box"
+							class:my-box={guessedRhyme.playerId === userId}
+							in:slide={{ y: -20, duration: 500 }}
+						>
+							<span class="word-guess">
+								<svg height="20" width="20">
+									<circle
+										cx="10"
+										cy="10"
+										r="8"
+										fill={categories[guessedRhyme.category].fill}
+										stroke={categories[guessedRhyme.category].stroke}
+										stroke-width="1"
+									/>
+								</svg>
+							</span>
+							{guessedRhyme.word}
+						</li>
+					{/each}
 				</div>
 			{/each}
 		</div>
@@ -189,12 +198,14 @@
 	main {
 		overflow-x: hidden;
 	}
-
 	.target-word {
 		text-align: center;
 		text-transform: uppercase;
 		position: sticky;
 		top: 0;
+		z-index: 2;
+		width: 100%;
+		background-color: var(--color-bg-0);
 	}
 
 	.word-guess > svg {
@@ -205,13 +216,8 @@
 	}
 	.timeline {
 		position: relative;
-		max-height: 400px;
+		height: 60vh;
 		overflow-y: scroll;
-	}
-
-	.timeline-item {
-		position: relative;
-		margin-bottom: 40px;
 	}
 
 	.timeline-guess-box {
@@ -221,7 +227,7 @@
 		color: #272727;
 		border-radius: 8px;
 		padding: 10px 20px;
-		margin: 24px auto;
+		margin: 16px auto;
 		min-width: 120px;
 		width: fit-content;
 		font-weight: 800;
@@ -236,24 +242,9 @@
 	}
 
 	.timeline-guess-box.my-box {
-		position: relative;
 		border: 1px solid #d2d2d2;
 		background-color: #595959;
 		color: #eeeeee;
-		border-radius: 8px;
-		padding: 10px 20px;
-		margin: 24px auto;
-		min-width: 120px;
-		width: fit-content;
-		font-weight: 800;
-		font-size: 20px;
-		text-align: center;
-		text-transform: uppercase;
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-		gap: 12px;
 	}
 
 	.timeline-guess-box:before {
@@ -262,7 +253,6 @@
 		left: 50%;
 		top: -50%;
 		bottom: 0;
-		height: 50%;
 		border-left: 2px #8a8a8a dashed;
 		z-index: -1;
 	}
@@ -276,7 +266,7 @@
 		width: 100%;
 		gap: 10px;
 		left: 50%;
-		bottom: 10%;
+		bottom: 2%;
 		transform: translate(-50%, 0);
 		position: absolute;
 		padding: 8px 24px !important;
@@ -289,7 +279,7 @@
 		border-bottom: 2px solid #ccc;
 		max-width: 400px;
 		width: 100%;
-		padding: 10px;
+		padding: 0px;
 		outline: none;
 	}
 

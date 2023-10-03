@@ -2,6 +2,9 @@
 	import './styles.css';
 </script>
 
+<svelte:head>
+	<title>Rhyme time</title>
+</svelte:head>
 <div class="app">
 	<main>
 		<slot />

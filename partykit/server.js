@@ -69,7 +69,9 @@ function getInitialGameState() {
 			players: 0,
 			room: '',
 			startedAt: new Date().getTime(),
-			currentPlayerId: null
+			currentPlayerId: null,
+			timer: null,
+			rhymeCounter: 0
 		}
 	};
 }
@@ -83,6 +85,10 @@ export default class RhymeSession {
 		await this.party.storage.put('players', getDefaultPlayers());
 		const gameState = getInitialGameState();
 		gameState.session.room = this.party.id;
+
+		if (this.party.multi) {
+			gameState.session.timer = setTimeout(this.changeWord, 300000); // 5 minutes
+		}
 
 		const fetchRhymePromises = gameState.words.map(async (wordContainer) => {
 			if (wordContainer.wordToRhyme) {
