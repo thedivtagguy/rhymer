@@ -29,7 +29,7 @@
 
 	$: if (gameState) {
 		players = gameState.players;
-		console.log('Client: Reactive gameState:', gameState); // Debug line
+		guessedRhymes = gameState.guessedRhymes;
 	}
 
 	onMount(() => {

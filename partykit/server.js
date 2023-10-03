@@ -69,13 +69,13 @@ export default class RhymeSession {
 		console.log('Server: Received message:', message, 'from connection ID:', connection.id);
 
 		const msg = JSON.parse(message);
-		console.log(msg, this.party.room);
+		console.log(msg, this.party.id);
 		const players = await this.party.storage.get('players');
 		const gameState = await this.party.storage.get('gameState');
 
 		console.log('Server: Fetched gameState from storage:', gameState);
 
-		if (msg.type === 'rhyme' && msg.room === this.party.room) {
+		if (msg.type === 'rhyme' && msg.room === this.party.id) {
 			console.log('Server: Handling rhyme type message');
 
 			// Check validity on the server
@@ -99,7 +99,7 @@ export default class RhymeSession {
 				...gameState,
 				guessedRhymes: newGuessedRhymes,
 				players: gameState.players,
-				room: this.party.room
+				room: this.party.id
 			};
 
 			console.log('Server: Updated gameState:', updatedGameState);
