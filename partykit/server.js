@@ -14,12 +14,9 @@ function getNextPlayerId(currentPlayerId, playersSet) {
 	const playersArray = Array.from(playersSet);
 	const currentPlayerIndex = playersArray.indexOf(currentPlayerId);
 
-	// Check if the current player was found and if they are not the last in the array
 	if (currentPlayerIndex !== -1 && currentPlayerIndex < playersArray.length - 1) {
 		return playersArray[currentPlayerIndex + 1];
 	}
-
-	// If the current player is the last in the array or wasn't found, return the first player
 	return playersArray[0];
 }
 
@@ -30,12 +27,22 @@ function getNewWord() {
 	const word = words[index];
 
 	return {
-		word: word,
-		validRhymes: [],
-		players: 0,
-		startedAt: new Date().getTime(),
-		room: '',
-		guessedRhymes: []
+		wordToRhyme: {
+			word: word,
+			validRhymes: [],
+			guesses: []
+		}
+	};
+}
+
+function getInitialGameState() {
+	return {
+		words: [getNewWord()],
+		session: {
+			players: 0,
+			room: '',
+			startedAt: new Date().getTime()
+		}
 	};
 }
 
@@ -46,18 +53,28 @@ export default class RhymeSession {
 
 	async onStart() {
 		await this.party.storage.put('players', getDefaultPlayers());
-		const gameState = getNewWord();
-		gameState.room = this.party.room;
-		gameState.validRhymes = await fetchValidRhymes(gameState.word);
+		const gameState = getInitialGameState();
+		gameState.session.room = this.party.id;
+		gameState.words[0].wordToRhyme.validRhymes = await fetchValidRhymes(
+			gameState.words[0].wordToRhyme.word
+		);
 		await this.party.storage.put('gameState', gameState);
 	}
 
 	async onConnect(connection) {
 		const players = await this.party.storage.get('players');
+		console.log(players);
+		let gameState = await this.party.storage.get('gameState');
+
+		// Check if gameState exists
+		if (!gameState) {
+			console.error('gameState is undefined. Make sure onStart has been called.');
+			return;
+		}
+
 		players.add(connection.id);
-		const gameState = await this.party.storage.get('gameState');
-		gameState.players = players.size;
-		gameState.room = this.party.room;
+		gameState.session.players = players.size; // assuming gameState has been initialized and has a session object
+		gameState.session.room = this.party.id;
 
 		await this.party.storage.put('players', players);
 		await this.party.storage.put('gameState', gameState);
@@ -66,58 +83,30 @@ export default class RhymeSession {
 	}
 
 	async onMessage(message, connection) {
-		console.log('Server: Received message:', message, 'from connection ID:', connection.id);
-
 		const msg = JSON.parse(message);
-		console.log(msg, this.party.id);
 		const players = await this.party.storage.get('players');
 		const gameState = await this.party.storage.get('gameState');
 
-		console.log('Server: Fetched gameState from storage:', gameState);
-
 		if (msg.type === 'rhyme' && msg.room === this.party.id) {
-			console.log('Server: Handling rhyme type message');
+			const currentWord = gameState.words[gameState.words.length - 1].wordToRhyme;
+			const isValidRhyme = currentWord.validRhymes.includes(msg.rhyme.word);
 
-			// Check validity on the server
-			const isValidRhyme = gameState.validRhymes.includes(msg.rhyme.word);
-
-			// Add validity information
 			const newRhyme = { ...msg.rhyme, isValid: isValidRhyme };
+			currentWord.guesses.push(newRhyme);
 
-			// Update guessedRhymes
-			gameState.guessedRhymes.push(newRhyme);
-
-			// Explicitly clone the array to ensure a new reference
-			const newGuessedRhymes = [...gameState.guessedRhymes];
-
-			// Add new player and update player count
 			players.add(connection.id);
-			gameState.players = players.size;
+			gameState.session.players = players.size;
 
-			// Create updated game state
-			const updatedGameState = {
-				...gameState,
-				guessedRhymes: newGuessedRhymes,
-				players: gameState.players,
-				room: this.party.id
-			};
-
-			console.log('Server: Updated gameState:', updatedGameState);
-
-			// Update stored game state
-			await this.party.storage.put('gameState', updatedGameState);
+			await this.party.storage.put('gameState', gameState);
 			await this.party.storage.put('players', players);
 
-			// Broadcast updated game state
 			this.party.broadcast(
 				JSON.stringify({
 					type: 'sync',
-					gameState: updatedGameState,
+					gameState,
 					nextPlayerId: getNextPlayerId(connection.id, players)
 				})
 			);
-
-			console.log('Server: Broadcasted updated gameState');
 		}
 	}
 
@@ -125,7 +114,7 @@ export default class RhymeSession {
 		const players = await this.party.storage.get('players');
 		players.delete(connection.id);
 		const gameState = await this.party.storage.get('gameState');
-		gameState.players = players.size;
+		gameState.session.players = players.size;
 
 		await this.party.storage.put('players', players);
 		await this.party.storage.put('gameState', gameState);

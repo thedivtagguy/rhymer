@@ -31,6 +31,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@fontsource-variable/nunito": "^5.0.9",
 		"@fontsource-variable/nunito-sans": "^5.0.9",
 		"axios": "^1.5.1",
 		"colyseus": "^0.15.9",

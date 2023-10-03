@@ -1,8 +1,8 @@
 @import '@fontsource/fira-mono';
-@import '@fontsource-variable/nunito-sans';
+@import '@fontsource-variable/nunito';
 
 :root {
-	--font-body: 'Nunito Sans Variable', sans-serif;
+	--font-body: 'Nunito Variable', sans-serif;
 	--font-mono: 'Fira Mono', monospace;
 	--color-bg-0: #E5E4E6;
 	--color-bg-1: hsl(209, 36%, 86%);
@@ -33,6 +33,8 @@ p {
 
 p {
 	line-height: 1.5;
+	margin: 0;
+	padding: 0;
 }
 
 a {
@@ -50,7 +52,10 @@ h1 {
 }
 
 h2 {
-	font-size: 1rem;
+	font-size: 4rem;
+	font-family: var(--font-body);
+	font-weight: 700;
+	margin: 0;
 }
 
 pre {
