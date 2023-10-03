@@ -1,24 +1,24 @@
 import { words } from './shared';
 
 async function fetchValidRhymes(word) {
+	console.log(word);
 	try {
 		const response = await fetch(`https://rhymetimewords.netlify.app/words/debug/${word}.json`);
 		if (!response.ok) {
 			console.error(`HTTP error! status: ${response.status}`);
-			return [];
+			return { words: [], stats: {} };
 		}
 		const data = await response.json();
 		if (!data.words) {
 			console.error('No "words" property in the response');
-			return [];
+			return { words: [], stats: {} };
 		}
-		return data.words.map((item) => item.word);
+		return data;
 	} catch (error) {
 		console.error('There was a problem with the fetch operation:', error);
-		return [];
+		return { words: [], stats: {} };
 	}
 }
-
 function getDefaultPlayers() {
 	return new Set();
 }
@@ -84,24 +84,27 @@ export default class RhymeSession {
 		const gameState = getInitialGameState();
 		gameState.session.room = this.party.id;
 
-		const rhymesData = await fetchValidRhymes(gameState.words[0].wordToRhyme.word);
-		const { words, stats } = rhymesData;
+		const fetchRhymePromises = gameState.words.map(async (wordContainer) => {
+			if (wordContainer.wordToRhyme) {
+				const word = wordContainer.wordToRhyme.word;
+				const rhymesData = await fetchValidRhymes(word);
+				const { words, stats } = rhymesData;
 
-		if (Array.isArray(gameState.words) && Array.isArray(words)) {
-			gameState.words.forEach((wordContainer) => {
-				if (wordContainer.wordToRhyme) {
+				if (Array.isArray(words)) {
 					wordContainer.wordToRhyme.validRhymes = words.map((rhyme) => {
 						return {
 							...rhyme,
 							category: categorizeRhyme(rhyme, stats)
 						};
 					});
+					wordContainer.wordToRhyme.stats = stats;
+				} else {
+					console.error(`For word ${word}, fetched rhymes are not an array`);
 				}
-			});
-		} else {
-			console.error('Either gameState.words or words is not an array');
-			console.log(gameState);
-		}
+			}
+		});
+
+		await Promise.all(fetchRhymePromises);
 
 		await this.party.storage.put('gameState', gameState);
 	}
@@ -145,20 +148,23 @@ export default class RhymeSession {
 
 		if (msg.type === 'rhyme' && msg.room === this.party.id) {
 			const currentWord = gameState.words[gameState.words.length - 1].wordToRhyme;
-			const isValidRhyme = currentWord.validRhymes.some(
-				(validRhyme) => validRhyme.word.toLowerCase() === msg.rhyme.word.toLowerCase()
+
+			// const isValidRhyme = currentWord.validRhymes.some(
+			// 	(validRhyme) => validRhyme.word.toLowerCase().trim() === msg.rhyme.word.toLowerCase().trim()
+			// );
+
+			const matchingRhymes = currentWord.validRhymes.filter(
+				(validRhyme) => validRhyme.word.toLowerCase().trim() === msg.rhyme.word.toLowerCase().trim()
 			);
-
-			console.log(isValidRhyme);
-
+			const isValidRhyme = matchingRhymes.length > 0;
 			const newRhyme = {
 				...msg.rhyme,
 				playerId: connection.id,
 				isValid: isValidRhyme,
-				category: isValidRhyme ? categorizeRhyme(msg.rhyme, currentWord.stats) : 'nope'
+				category: isValidRhyme ? categorizeRhyme(matchingRhymes[0], currentWord.stats) : 'nope'
 			};
+
 			currentWord.guesses.push(newRhyme);
-			console.log(msg.rhyme);
 			players.add(connection.id);
 			gameState.session.players = players.size;
 
