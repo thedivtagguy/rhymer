@@ -6,26 +6,32 @@
 	let gameState = null;
 	let newRhyme = '';
 	let partySocket;
-	let myTurn = true; // Initialize to true for demonstration.
-	let guessedRhymes = []; // To hold the guessed rhymes
-	let isCorrectGuess = false; // To track if the last guess was correct
+	let myTurn = true;
+	let guessedRhymes = [];
+
+	function updateGameState(newGameState) {
+		console.log('Client: Updating game state with new data:', newGameState);
+		gameState = { ...gameState, ...newGameState };
+
+		guessedRhymes = [...newGameState.guessedRhymes]; // Explicitly set this
+	}
 
 	function submitRhyme() {
 		if (newRhyme && (myTurn || gameState.players === 0)) {
 			const isValidRhyme = gameState.validRhymes.includes(newRhyme);
-			guessedRhymes = [...guessedRhymes, { word: newRhyme, isValid: isValidRhyme }];
-			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: { word: newRhyme }, room: id }));
-			newRhyme = '';
-			isCorrectGuess = isValidRhyme;
-			myTurn = gameState.players === 0 ? true : false;
+			const newGuess = { word: newRhyme, isValid: isValidRhyme };
+			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: id }));
+			newRhyme = ''; // reset the input
 		}
 	}
 
 	let players;
 	$: if (gameState) {
 		players = gameState.players;
+		guessedRhymes = [...gameState.guessedRhymes];
 	}
 
+	$: console.log(guessedRhymes);
 	onMount(() => {
 		partySocket = new PartySocket({
 			host: 'rhymetime.thedivtagguy.partykit.dev',
@@ -37,9 +43,11 @@
 			if (msg.type === 'sync') {
 				gameState = msg.gameState;
 				gameState.room = id;
-			} else if (msg.type === 'update') {
-				gameState = { ...gameState, validRhymes: [...gameState.validRhymes, msg.rhyme.word] };
-				myTurn = true; // Enable user input after an update.
+			} else if (msg.type === 'sync' || msg.type === 'update') {
+				updateGameState(msg.gameState);
+				if (msg.type === 'update') {
+					myTurn = msg.nextPlayerId === partySocket.connection.id;
+				}
 			}
 		});
 	});
