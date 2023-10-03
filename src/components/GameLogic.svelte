@@ -1,4 +1,6 @@
 <script>
+	// @ts-nocheck
+
 	import { onMount } from 'svelte';
 	import PartySocket from 'partysocket';
 
@@ -12,29 +14,30 @@
 	function updateGameState(newGameState) {
 		console.log('Client: Updating game state with new data:', newGameState);
 		gameState = { ...gameState, ...newGameState };
-
 		guessedRhymes = [...newGameState.guessedRhymes]; // Explicitly set this
 	}
 
-	function submitRhyme() {
+	function submitRhyme(newRhyme, myTurn, id) {
 		if (newRhyme && (myTurn || gameState.players === 0)) {
-			const isValidRhyme = gameState.validRhymes.includes(newRhyme);
-			const newGuess = { word: newRhyme, isValid: isValidRhyme };
+			const newGuess = { word: newRhyme };
 			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: id }));
 			newRhyme = ''; // reset the input
 		}
 	}
 
 	let players;
+
 	$: if (gameState) {
 		players = gameState.players;
-		guessedRhymes = [...gameState.guessedRhymes];
+		console.log('Client: Reactive gameState:', gameState); // Debug line
 	}
 
-	$: console.log(guessedRhymes);
 	onMount(() => {
+		const isDevMode = process.env.NODE_ENV === 'development';
+		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
+		console.log(isDevMode);
 		partySocket = new PartySocket({
-			host: 'rhymetime.thedivtagguy.partykit.dev',
+			host: host,
 			room: id
 		});
 
@@ -78,7 +81,10 @@
 				placeholder="Enter a rhyme..."
 				disabled={!myTurn || gameState.players === 0}
 			/>
-			<button on:click={submitRhyme} disabled={!myTurn || gameState.players === 0}>Submit</button>
+			<button
+				on:click={submitRhyme(newRhyme, myTurn, id)}
+				disabled={!myTurn || gameState.players === 0}>Submit</button
+			>
 		</div>
 	{:else}
 		<p>Loading...</p>

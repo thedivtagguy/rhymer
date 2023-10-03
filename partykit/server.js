@@ -62,7 +62,6 @@ export default class RhymeSession {
 		await this.party.storage.put('players', players);
 		await this.party.storage.put('gameState', gameState);
 
-		connection.send(JSON.stringify({ type: 'sync', gameState }));
 		this.party.broadcast(JSON.stringify({ type: 'sync', gameState }));
 	}
 
@@ -70,6 +69,7 @@ export default class RhymeSession {
 		console.log('Server: Received message:', message, 'from connection ID:', connection.id);
 
 		const msg = JSON.parse(message);
+		console.log(msg, this.party.room);
 		const players = await this.party.storage.get('players');
 		const gameState = await this.party.storage.get('gameState');
 
@@ -78,43 +78,46 @@ export default class RhymeSession {
 		if (msg.type === 'rhyme' && msg.room === this.party.room) {
 			console.log('Server: Handling rhyme type message');
 
-			if (msg.type === 'rhyme') {
-				gameState.guessedRhymes.push(msg.rhyme);
+			// Check validity on the server
+			const isValidRhyme = gameState.validRhymes.includes(msg.rhyme.word);
 
-				// Explicitly clone the array to ensure a new reference
-				const newGuessedRhymes = [...gameState.guessedRhymes];
+			// Add validity information
+			const newRhyme = { ...msg.rhyme, isValid: isValidRhyme };
 
-				// Add new player and update player count
-				players.add(connection.id);
-				gameState.players = players.size;
+			// Update guessedRhymes
+			gameState.guessedRhymes.push(newRhyme);
 
-				// Create updated game state
-				const updatedGameState = {
-					...gameState,
-					guessedRhymes: newGuessedRhymes,
-					players: gameState.players
-				};
+			// Explicitly clone the array to ensure a new reference
+			const newGuessedRhymes = [...gameState.guessedRhymes];
 
-				console.log('Server: Updated gameState:', updatedGameState);
+			// Add new player and update player count
+			players.add(connection.id);
+			gameState.players = players.size;
 
-				// Update stored game state
-				await this.party.storage.put('gameState', updatedGameState);
-				await this.party.storage.put('players', players);
+			// Create updated game state
+			const updatedGameState = {
+				...gameState,
+				guessedRhymes: newGuessedRhymes,
+				players: gameState.players,
+				room: this.party.room
+			};
 
-				// Broadcast updated game state
-				this.party.broadcast(
-					JSON.stringify({
-						type: 'update',
-						gameState: updatedGameState,
-						nextPlayerId: getNextPlayerId(connection.id, players)
-					})
-				);
+			console.log('Server: Updated gameState:', updatedGameState);
 
-				console.log('Server: Broadcasted updated gameState');
-			} else {
-				connection.send(JSON.stringify({ type: 'error', message: 'Invalid rhyme' }));
-				console.log('Server: Invalid rhyme. Sent error to client.');
-			}
+			// Update stored game state
+			await this.party.storage.put('gameState', updatedGameState);
+			await this.party.storage.put('players', players);
+
+			// Broadcast updated game state
+			this.party.broadcast(
+				JSON.stringify({
+					type: 'sync',
+					gameState: updatedGameState,
+					nextPlayerId: getNextPlayerId(connection.id, players)
+				})
+			);
+
+			console.log('Server: Broadcasted updated gameState');
 		}
 	}
 
