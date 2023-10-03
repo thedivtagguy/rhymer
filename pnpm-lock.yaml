@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@fontsource-variable/nunito':
+    specifier: ^5.0.9
+    version: 5.0.9
   '@fontsource-variable/nunito-sans':
     specifier: ^5.0.9
     version: 5.0.9
@@ -17,6 +20,12 @@ dependencies:
   partysocket:
     specifier: ^0.0.8
     version: 0.0.8
+  short-unique-id:
+    specifier: ^5.0.3
+    version: 5.0.3
+  svelte-keyboard:
+    specifier: ^0.5.5
+    version: 0.5.5
 
 devDependencies:
   '@fontsource/fira-mono':
@@ -615,6 +624,10 @@ packages:
 
   /@fontsource-variable/nunito-sans@5.0.9:
     resolution: {integrity: sha512-mZzT9D6qQ2hwHSj8a2oexSh0a66YWQH40J7dP4BVljf6tqksVCGcErdVBllSSYs4c/SKh/n9J87kueX/Z9uLEA==}
+    dev: false
+
+  /@fontsource-variable/nunito@5.0.9:
+    resolution: {integrity: sha512-6SivBy9FfkcPJdc3MyMF1JZaWgWQL5BGmUst6gQbTAkHT1O4BmGxhW8/7v5NBa/Dh4K4dLOwXmz8zXbNddCQwQ==}
     dev: false
 
   /@fontsource/fira-mono@4.5.10:
@@ -2327,6 +2340,11 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /short-unique-id@5.0.3:
+    resolution: {integrity: sha512-yhniEILouC0s4lpH0h7rJsfylZdca10W9mDJRAFh3EpcSUanCHGb0R7kcFOIUCZYSAPo0PUD5ZxWQdW0T4xaug==}
+    hasBin: true
+    dev: false
+
   /signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
 
@@ -2473,6 +2491,10 @@ packages:
     dependencies:
       svelte: 4.0.5
     dev: true
+
+  /svelte-keyboard@0.5.5:
+    resolution: {integrity: sha512-yxtQBhz2wMy8qf60pW3VRI7Pwvv3X7+MHeaZZA0rq3fnFPDPOXZq6FF7GhF9NmL4dm4bWu/c8YfYnwsaNcpmRg==}
+    dev: false
 
   /svelte-preprocess@5.0.4(postcss@8.4.31)(svelte@4.0.5)(typescript@5.2.2):
     resolution: {integrity: sha512-ABia2QegosxOGsVlsSBJvoWeXy1wUKSfF7SWJdTjLAbx/Y3SrVevvvbFNQqrSJw89+lNSsM58SipmZJ5SRi5iw==}
