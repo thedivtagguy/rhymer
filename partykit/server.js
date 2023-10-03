@@ -1,3 +1,10 @@
+import { words } from './shared';
+async function fetchValidRhymes(word) {
+	const response = await fetch(`https://rhymetimewords.netlify.app/words/debug/${word}.json`);
+	const data = await response.json();
+	return data.words.map((item) => item.word);
+}
+
 function getDefaultPlayers() {
 	return new Set();
 }
@@ -23,29 +30,22 @@ export default class RhymeSession {
 	}
 
 	async onStart() {
-		console.log('onStart called');
 		await this.party.storage.put('players', getDefaultPlayers());
 		const gameState = getNewWord();
-		gameState.room = this.party.room; // Include room information in gameState
-
-		await fetch(`https://rhymetimewords.netlify.app/words/debug/${gameState.word}.json`)
-			.then((res) => res.json())
-			.then((data) => {
-				gameState.validRhymes = data.words.map((item) => item.word);
-			});
-
+		gameState.room = this.party.room;
+		gameState.validRhymes = await fetchValidRhymes(gameState.word);
 		await this.party.storage.put('gameState', gameState);
 	}
 
 	async onConnect(connection) {
 		const players = await this.party.storage.get('players');
-		players.add(connection.id); // Add new player to the set
+		players.add(connection.id);
 		const gameState = await this.party.storage.get('gameState');
-		gameState.players = players.size; // Update the player count
-		gameState.room = this.party.room; // Include room information in gameState
+		gameState.players = players.size;
+		gameState.room = this.party.room;
 
-		await this.party.storage.put('players', players); // Save updated players set
-		await this.party.storage.put('gameState', gameState); // Save updated gameState
+		await this.party.storage.put('players', players);
+		await this.party.storage.put('gameState', gameState);
 
 		connection.send(JSON.stringify({ type: 'sync', gameState }));
 		this.party.broadcast(JSON.stringify({ type: 'sync', gameState }));
@@ -75,17 +75,13 @@ export default class RhymeSession {
 
 	async onClose(connection) {
 		const players = await this.party.storage.get('players');
-		if (players.has(connection.id)) {
-			players.delete(connection.id); // Remove the player from the set
-		}
-
+		players.delete(connection.id);
 		const gameState = await this.party.storage.get('gameState');
-		gameState.players = players.size; // Update the player count
+		gameState.players = players.size;
 
-		await this.party.storage.put('players', players); // Save updated players set
-		await this.party.storage.put('gameState', gameState); // Save updated gameState
+		await this.party.storage.put('players', players);
+		await this.party.storage.put('gameState', gameState);
 
-		// Optionally, notify all players about the change.
 		this.party.broadcast(JSON.stringify({ type: 'player_left', playerId: connection.id }));
 		this.party.broadcast(JSON.stringify({ type: 'sync', gameState }));
 	}

@@ -68,9 +68,9 @@
 				type="text"
 				bind:value={newRhyme}
 				placeholder="Enter a rhyme..."
-				disabled={!myTurn || gameState.players !== 0}
+				disabled={!myTurn || gameState.players === 0}
 			/>
-			<button on:click={submitRhyme} disabled={!myTurn || gameState.players !== 0}>Submit</button>
+			<button on:click={submitRhyme} disabled={!myTurn || gameState.players === 0}>Submit</button>
 		</div>
 	{:else}
 		<p>Loading...</p>
