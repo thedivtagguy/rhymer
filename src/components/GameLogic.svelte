@@ -7,7 +7,7 @@
 	import ShortUniqueId from 'short-unique-id';
 	const uid = new ShortUniqueId({ length: 10 });
 	let userId = uid.rnd();
-	export let id = 'hello';
+	export let id;
 	let gameState = null;
 	let newRhyme = '';
 	let partySocket;
