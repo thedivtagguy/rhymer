@@ -4,10 +4,12 @@
 	import PartySocket from 'partysocket';
 	import Keyboard from './Keyboard.svelte';
 	import { slide } from 'svelte/transition';
+	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
+	let roomId;
 	const uid = new ShortUniqueId({ length: 10 });
 	let userId = uid.rnd();
-	export let id;
+	let id = roomId;
 	let gameState = null;
 	let newRhyme = '';
 	let partySocket;
@@ -45,7 +47,9 @@
 		if (!myTurn) return;
 		if (newRhymeValue && (myTurn || gameState.session.players === 0)) {
 			const newGuess = { word: newRhymeValue };
-			partySocket.send(JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: id, user: userId }));
+			partySocket.send(
+				JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: roomId, user: userId })
+			);
 			newRhyme = ''; // Clear the global variable
 			newItemAdded = true;
 		}
@@ -61,11 +65,12 @@
 		guessedRhymes = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
 	}
 	onMount(() => {
+		roomId = $page.url.searchParams.get('id') || '';
 		const isDevMode = process.env.NODE_ENV === 'development';
 		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
 		partySocket = new PartySocket({
 			host: host,
-			room: id,
+			room: roomId,
 			id: userId
 		});
 
@@ -73,14 +78,14 @@
 			const msg = JSON.parse(e.data);
 			if (msg.type === 'sync') {
 				gameState = msg.gameState;
-				gameState.session.room = id;
+				gameState.session.room = roomId;
 				currentUserId = msg.currentPlayerId;
 				nextPlayerId = msg.nextPlayerId;
 				myTurn = msg.nextPlayerId === userId;
 			}
 		});
 
-		partySocket.send(JSON.stringify({ type: 'initialize', room: id, multi: true }));
+		partySocket.send(JSON.stringify({ type: 'initialize', room: roomId, multi: true }));
 	});
 
 	const onKeydown = (event) => {
