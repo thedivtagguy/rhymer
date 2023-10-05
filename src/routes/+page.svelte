@@ -18,7 +18,7 @@
 		const roomId = uid.rnd();
 
 		// Send a request to your serverless function to create the room in Supabase
-		const response = await fetch('/.netlify/functions/createRoom', {
+		const response = await fetch('/.netlify/functions/create-room', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
