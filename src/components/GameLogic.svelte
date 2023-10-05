@@ -6,6 +6,7 @@
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
+	import { onlinePlayers, numberOfPlayers } from '$lib/stores';
 	let roomId;
 	const uid = new ShortUniqueId({ length: 10 });
 	let userId = uid.rnd();
@@ -18,6 +19,7 @@
 	let currentUserId;
 	let nextPlayerId;
 	let newItemAdded = false;
+
 	let guessedRhymesLength = 0;
 	let placeholderText = 'Enter a rhyme...';
 	$: if (gameState) {
@@ -58,9 +60,11 @@
 	let players;
 	let currentWord;
 	let guessedRhymes;
+	let maxPlayers = $numberOfPlayers;
 
 	$: if (gameState) {
 		players = gameState.session.players;
+		onlinePlayers.set(players);
 		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
 		guessedRhymes = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
 	}
@@ -119,7 +123,6 @@
 	{#if gameState}
 		<div class="room-info">
 			<p class="players">Players: <span class="player-no">{players}</span></p>
-			<p class="room"><span class="room-name">{gameState.session.room}</span></p>
 		</div>
 
 		<div class="timeline" bind:this={timelineElement}>
@@ -198,133 +201,3 @@
 		<p>Loading...</p>
 	{/if}
 </main>
-
-<style>
-	main {
-		overflow-x: hidden;
-	}
-	.target-word {
-		text-align: center;
-		text-transform: uppercase;
-		position: sticky;
-		top: 0;
-		z-index: 2;
-		width: 100%;
-		background-color: var(--color-bg-0);
-	}
-
-	.word-guess > svg {
-		display: inline-block;
-		vertical-align: middle;
-		width: fit-content;
-		margin-top: -4px;
-	}
-	.timeline {
-		position: relative;
-		height: 60vh;
-		overflow-y: scroll;
-	}
-
-	.timeline-guess-box {
-		position: relative;
-		border: 1px solid #d2d2d2;
-		background-color: #f5f5f5;
-		color: #272727;
-		border-radius: 8px;
-		padding: 10px 20px;
-		margin: 16px auto;
-		min-width: 120px;
-		width: fit-content;
-		font-weight: 800;
-		font-size: 20px;
-		text-align: center;
-		text-transform: uppercase;
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.timeline-guess-box.my-box {
-		border: 1px solid #d2d2d2;
-		background-color: #595959;
-		color: #eeeeee;
-	}
-
-	.timeline-guess-box:before {
-		content: '';
-		position: absolute;
-		left: 50%;
-		top: -50%;
-		bottom: 0;
-		border-left: 2px #8a8a8a dashed;
-		z-index: -1;
-	}
-
-	.input-container {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		max-width: 400px;
-		width: 100%;
-		gap: 10px;
-		left: 50%;
-		bottom: 2%;
-		transform: translate(-50%, 0);
-		position: absolute;
-		padding: 8px 24px !important;
-		z-index: 5;
-	}
-
-	.line-input {
-		background: var(--color-bg-0);
-		border: none;
-		border-bottom: 2px solid #ccc;
-		max-width: 400px;
-		width: 100%;
-		padding: 0px;
-		outline: none;
-	}
-
-	/* .line-input:focus {
-		border-bottom: 2px solid #000;
-	} */
-
-	input {
-		color: #272727;
-		font-size: larger;
-		text-transform: uppercase;
-		font-weight: 800;
-		text-align: center;
-	}
-
-	li {
-		list-style: none;
-	}
-
-	.room-info {
-		display: flex;
-		gap: 12px;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 12px;
-		z-index: 5;
-		background-color: var(--color-bg-0);
-		height: 30px;
-	}
-
-	.players {
-		background-color: #8a8a8a;
-		color: #efefef;
-		padding: 2px 6px;
-		border-radius: 4px;
-		font-weight: 700;
-	}
-
-	.room {
-		text-transform: uppercase;
-		font-weight: 600;
-	}
-</style>

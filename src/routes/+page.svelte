@@ -2,126 +2,168 @@
 	import { fly, fade } from 'svelte/transition';
 	import ShortUniqueId from 'short-unique-id';
 	import { clickToCopyAction } from 'svelte-legos';
+	import Copy from '$lib/svg/Copy.svelte';
+	import Arrow from '$lib/svg/Arrow.svelte';
+	import { numberOfPlayers } from '$lib/stores';
 	const uid = new ShortUniqueId({ length: 5 });
 	let roomLink = '';
-
-	function createRoom() {
-		const roomId = uid.rnd();
-		roomLink = `${window.location.origin}/room/?id=${roomId}`;
-	}
-
-	function copyToClipboard() {
-		navigator.clipboard.writeText(roomLink);
-	}
+	let step = 0;
+	let numPlayers = 1;
 
 	function goToRoom() {
 		window.location.href = roomLink;
 	}
+
+	async function createRoom() {
+		const roomId = uid.rnd();
+
+		// Send a request to your serverless function to create the room in Supabase
+		const response = await fetch('/.netlify/functions/createRoom', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				roomId: roomId,
+				maxPlayers: numPlayers
+			})
+		});
+
+		const data = await response.json();
+
+		if (response.ok) {
+			roomLink = `${window.location.origin}/battle/?id=${roomId}`;
+			step = 2;
+		} else {
+			console.error('Error creating room:', data);
+		}
+	}
+
+	function setNumPlayersAndProceed(value) {
+		numberOfPlayers.set(value);
+		createRoom();
+	}
 </script>
 
 <main>
-	<h1>Let's rhyme</h1>
-	{#if roomLink}
-		<div class="link" in:fly={{ y: 20, duration: 200 }}>
-			<input type="text" readonly value={roomLink} onClick={copyToClipboard} />
-			<button class="copy" use:clickToCopyAction={roomLink}>Copy Link</button>
-			<button class="go" on:click={goToRoom}>Go to Room</button>
-			<!-- New button -->
-		</div>
-	{:else}
-		<button in:fade={{ duration: 400 }} on:click={createRoom}>Create Room</button>
+	{#if step === 0}
+		<section in:fly={{ y: 20, duration: 200 }} class="box">
+			<button in:fade={{ duration: 400 }}>today's special</button>
+			<span>or</span>
+			<button in:fade={{ duration: 400 }} on:click={() => (step = 1)}>get a room</button>
+		</section>
+	{:else if step === 1}
+		<Arrow width="2em" onClick={() => ((step = 0), (roomLink = ''))} ariaLabel="Close room link" />
+		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
+			<p>And how many will you be?</p>
+			<input type="number" bind:value={numPlayers} min="1" max="3" />
+			<button on:click={() => setNumPlayersAndProceed(numPlayers)}>Create Room</button>
+		</section>
+	{:else if step === 2}
+		<Arrow width="2em" onClick={() => ((step = 1), (roomLink = ''))} ariaLabel="Close room link" />
+		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
+			<button class="copy-link" use:clickToCopyAction={roomLink}>
+				<Copy fill="#7d7d7d" width="2em" />
+				<span>{roomLink}</span></button
+			>
+			<p>Ask your friends to join!</p>
+			<button on:click={goToRoom}>Enter battle</button>
+		</section>
 	{/if}
 </main>
 
 <style>
-	h1 {
-		font-size: 4rem;
-	}
 	main {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		padding-top: 10rem;
+		gap: 16px;
 	}
-
-	button {
-		padding: 10px 20px;
-		margin-top: 10px;
-		cursor: pointer;
-		background-color: #272727;
-		border-radius: 8px;
-		font-family: 'Nunito Variable', sans-serif;
-		font-size: x-large;
-		color: rgb(232, 232, 232);
-	}
-	.copy {
-		font-size: small;
-		width: 100%;
-	}
-	input {
-		width: 100%;
-		padding: 5px;
-		text-align: center;
-		margin-top: 20px;
-		font-size: x-large;
-	}
-
-	.link {
+	.gray-box {
+		background-color: var(--box-gray);
+		height: 300px;
+		width: 300px;
 		display: flex;
 		flex-direction: column;
+		justify-content: center;
 		align-items: center;
-		justify-content: space-around;
-		height: 120px;
+		border-radius: 8px;
+		padding: 16px;
+		gap: 16px;
+		border: 2px rgb(182, 182, 182) solid;
 	}
 
-	.go {
-		appearance: button;
-		background-color: #000;
-		background-image: none;
-		border: 1px solid #000;
-		border-radius: 4px;
-		box-shadow: #fff 4px 4px 0 0, #000 4px 4px 0 1px;
-		box-sizing: border-box;
-		color: #fff;
-		cursor: pointer;
-		display: inline-block;
-		font-family: 'Nunito Variable', 'sans-serif';
-		font-size: 28px;
-		font-weight: 400;
-		line-height: 20px;
-		margin: 40px 5px 10px 0;
-		overflow: visible;
-		padding: 20px 40px;
+	.box {
+		background-color: transparent;
+		height: 300px;
+		width: 300px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		border-radius: 8px;
+		padding: 16px;
+		gap: 16px;
+	}
+	.gray-box p {
+		font-size: larger;
+		color: #7d7d7d;
+		font-weight: 700;
+	}
+	.copy-link:hover {
+		box-shadow: rgba(45, 35, 66, 0.4) 0 4px 8px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px,
+			#d6d6e7 0 -3px 0 inset;
+		transform: translateY(-2px);
+	}
+
+	.copy-link:active {
+		box-shadow: #d6d6e7 0 3px 7px inset;
+		transform: translateY(2px);
+	}
+	.copy-link {
+		background-color: #fefefe;
+		color: #7d7d7d;
+		font-size: large;
+		border: 2px #bbbbbb solid;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 4px;
+	}
+
+	input[type='number'] {
+		background-color: #fefefe;
+		color: #7d7d7d;
+		font-size: 2rem;
 		text-align: center;
-		text-transform: none;
-		touch-action: manipulation;
-		user-select: none;
-		-webkit-user-select: none;
-		vertical-align: middle;
-		white-space: nowrap;
+		border: 2px #bbbbbb solid;
+		padding: 8px 12px;
+		border-radius: 8px;
+		width: 100%;
+		box-sizing: border-box;
+		transition: box-shadow 0.3s ease, transform 0.3s ease;
 	}
 
-	.go:focus {
-		text-decoration: none;
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
 	}
 
-	.go:hover {
-		text-decoration: none;
+	input[type='number']::-moz-inner-spin-button,
+	input[type='number']::-moz-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
 	}
 
-	.go:active {
-		box-shadow: rgba(0, 0, 0, 0.125) 0 3px 5px inset;
-		outline: 0;
+	input[type='number']:focus {
+		outline: none;
+		box-shadow: rgba(45, 35, 66, 0.4) 0 4px 4px;
 	}
 
-	.go:not([disabled]):active {
-		box-shadow: #fff 2px 2px 0 0, #000 2px 2px 0 1px;
-		transform: translate(2px, 2px);
-	}
-
-	@media (min-width: 768px) {
-		.button-50 {
-			padding: 12px 50px;
-		}
+	input[type='number']:active {
+		box-shadow: #d6d6e7 0 3px 7px inset;
 	}
 </style>
