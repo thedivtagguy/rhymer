@@ -1,5 +1,26 @@
 import { words } from './shared';
 
+async function getMaxPlayersForRoom(roomId) {
+	const response = await fetch(`${party.env.SUPABASE_URL}/rhymer_rooms?room_id=eq.${roomId}`, {
+		headers: {
+			apikey: party.env.SUPABASE_API_KEY,
+			'Content-Type': 'application/json'
+		}
+	});
+
+	if (!response.ok) {
+		throw new Error('Failed to fetch max_players for the room.');
+	}
+
+	const data = await response.json();
+
+	if (data && data.length > 0) {
+		return data[0].max_players;
+	} else {
+		throw new Error('Room not found.');
+	}
+}
+
 async function fetchValidRhymes(word) {
 	console.log(word);
 	try {
@@ -118,7 +139,21 @@ export default class RhymeSession {
 	async onConnect(connection) {
 		const players = await this.party.storage.get('players');
 		let gameState = await this.party.storage.get('gameState');
+		const roomId = this.party.id; // assuming this is the room_id
+		const maxPlayers = await getMaxPlayersForRoom(roomId);
 
+		// Check if the room has reached its max_players
+		if (players.size >= maxPlayers) {
+			// Handle the case when the room is full. For example, send a message to the user.
+			this.party.send(
+				connection.id,
+				JSON.stringify({
+					type: 'room_full',
+					message: 'The room is full!'
+				})
+			);
+			return; // Early return to stop further processing
+		}
 		// Check if gameState exists
 		if (!gameState) {
 			console.error('gameState is undefined. Make sure onStart has been called.');

@@ -61,6 +61,7 @@
 	let currentWord;
 	let guessedRhymes;
 	let maxPlayers = $numberOfPlayers;
+	let roomIsFull = false;
 
 	$: if (gameState) {
 		players = gameState.session.players;
@@ -82,6 +83,10 @@
 			const msg = JSON.parse(e.data);
 			if (msg.type === 'sync') {
 				gameState = msg.gameState;
+				if (players >= maxPlayers) {
+					roomIsFull = true;
+				}
+
 				gameState.session.room = roomId;
 				currentUserId = msg.currentPlayerId;
 				nextPlayerId = msg.nextPlayerId;
@@ -121,6 +126,12 @@
 
 <main>
 	{#if gameState}
+		{#if roomIsFull}
+			<div class="full-room-alert">
+				This room is full! Please try another room or wait for a spot to open up.
+			</div>
+		{/if}
+
 		<div class="room-info">
 			<p class="players">Players: <span class="player-no">{players}</span></p>
 		</div>
