@@ -12,7 +12,7 @@ const handler = async (event) => {
 
 		const { roomId, maxPlayers } = JSON.parse(event.body);
 		const { data, error } = await supabase
-			.from('rooms')
+			.from('rhymer_rooms')
 			.insert([{ room_id: roomId, max_players: maxPlayers }]);
 		console.log('maxPlayers', maxPlayers);
 
