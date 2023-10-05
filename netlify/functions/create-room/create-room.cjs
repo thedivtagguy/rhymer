@@ -14,8 +14,11 @@ const handler = async (event) => {
 		const { data, error } = await supabase
 			.from('rooms')
 			.insert([{ room_id: roomId, max_players: maxPlayers }]);
+		console.log('maxPlayers', maxPlayers);
 
 		if (error) {
+			console.log(error);
+
 			return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
 		}
 
@@ -30,6 +33,7 @@ const handler = async (event) => {
 			body: JSON.stringify({ success: true, room: data })
 		};
 	} catch (error) {
+		console.log(error);
 		return { statusCode: 500, body: error.toString() };
 	}
 };
