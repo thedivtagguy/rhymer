@@ -21,6 +21,12 @@ const handler = async (event) => {
 
 		return {
 			statusCode: 200,
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*', // allow requests from any origin
+				'Access-Control-Allow-Methods': 'GET, POST', // allow both GET and POST requests
+				'Access-Control-Allow-Headers': 'Content-Type' // allow Content-Type header
+			},
 			body: JSON.stringify({ success: true, room: data })
 		};
 	} catch (error) {

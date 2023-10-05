@@ -13,29 +13,36 @@
 	function goToRoom() {
 		window.location.href = roomLink;
 	}
-
+	const isDevMode = process.env.NODE_ENV === 'development';
+	const host = isDevMode
+		? 'localhost:9999/.netlify/functions/create-room'
+		: '/.netlify/functions/create-room';
 	async function createRoom() {
 		const roomId = uid.rnd();
 
-		// Send a request to your serverless function to create the room in Supabase
-		const response = await fetch('/.netlify/functions/create-room', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				roomId: roomId,
-				maxPlayers: numPlayers
-			})
-		});
+		try {
+			const response = await fetch(host, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					roomId: roomId,
+					maxPlayers: numPlayers
+				})
+			});
 
-		const data = await response.json();
+			const data = await response.json();
+			console.log(data);
 
-		if (response.ok) {
-			roomLink = `${window.location.origin}/battle/?id=${roomId}`;
-			step = 2;
-		} else {
-			console.error('Error creating room:', data);
+			if (response.ok) {
+				roomLink = `${window.location.origin}/battle/?id=${roomId}`;
+				step = 2;
+			} else {
+				console.error('Error creating room:', data);
+			}
+		} catch (error) {
+			console.error('Network request failed:', error);
 		}
 	}
 

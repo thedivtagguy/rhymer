@@ -1,0 +1,19 @@
+{
+	"geolocation": {
+		"data": {
+			"city": "Mangalore",
+			"country": {
+				"code": "IN",
+				"name": "India"
+			},
+			"subdivision": {
+				"code": "KA",
+				"name": "Karnataka"
+			},
+			"timezone": "Asia/Kolkata",
+			"latitude": 12.9187,
+			"longitude": 74.8598
+		},
+		"timestamp": 1696528403016
+	}
+}
