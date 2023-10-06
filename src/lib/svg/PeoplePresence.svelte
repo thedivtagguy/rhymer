@@ -32,6 +32,7 @@
 		class:hover={hoverEffects}
 		class:active
 		{...$$props}
+		role="{people} in the room"
 	>
 		<path
 			color={fill}
