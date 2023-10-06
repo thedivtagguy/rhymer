@@ -4,7 +4,12 @@
 	export let viewBox = '0 0 44 50';
 	export let fill = 'currentColor';
 	export let people = 1;
+	export let onClick;
+	export let hoverEffects = false;
+	export let active = false;
+
 	let d = '';
+
 	$: if (people === 1) {
 		d =
 			'M24 20a7 7 0 1 0 0-14a7 7 0 0 0 0 14ZM6 40.8V42h36v-1.2c0-4.48 0-6.72-.872-8.432a8 8 0 0 0-3.496-3.496C35.92 28 33.68 28 29.2 28H18.8c-4.48 0-6.72 0-8.432.872a8 8 0 0 0-3.496 3.496C6 34.08 6 36.32 6 40.8Z';
@@ -18,8 +23,17 @@
 </script>
 
 {#key d}
-	<svg xmlns="http://www.w3.org/2000/svg" {width} {height} {viewBox} {...$$props}
-		><path
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		{width}
+		{height}
+		{viewBox}
+		on:click={onClick}
+		class:hover={hoverEffects}
+		class:active
+		{...$$props}
+	>
+		<path
 			color={fill}
 			fill="none"
 			stroke="currentColor"
@@ -27,12 +41,28 @@
 			stroke-linejoin="round"
 			stroke-width="4"
 			{d}
-		/></svg
-	>
+		/>
+	</svg>
 {/key}
 
 <style>
+	svg {
+		padding: 6px;
+	}
 	path {
 		transition: all 300ms cubic-bezier(0.075, 0.82, 0.165, 1);
+	}
+
+	svg.hover:hover:not(.active) {
+		cursor: pointer;
+		filter: brightness(1.2);
+		color: rgb(62, 62, 62);
+	}
+
+	svg.active {
+		background-color: rgb(122, 122, 122);
+		/* padding: 6px; */
+		border-radius: 4px;
+		color: #cbcbcb;
 	}
 </style>

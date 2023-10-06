@@ -6,7 +6,6 @@
 	function saveName() {
 		if (playerName.trim()) {
 			localStorage.setItem('playerName', playerName);
-			// Emit an event indicating the name has been saved
 			dispatch('nameSaved');
 		}
 	}

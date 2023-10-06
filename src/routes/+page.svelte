@@ -5,6 +5,7 @@
 	import Copy from '$lib/svg/Copy.svelte';
 	import Arrow from '$lib/svg/Arrow.svelte';
 	import { numberOfPlayers } from '$lib/stores';
+	import PeoplePresence from '$lib/svg/PeoplePresence.svelte';
 	const uid = new ShortUniqueId({ length: 5 });
 	let roomLink = '';
 	let step = 0;
@@ -51,10 +52,10 @@
 	}
 
 	let roomCreation = null; // Holds the promise when createRoom is called
-
+	$: console.log(numPlayers);
 	function setNumPlayersAndProceed(value) {
 		numberOfPlayers.set(value);
-		roomCreation = createRoom(); // Assign the promise to roomCreation
+		roomCreation = createRoom();
 	}
 </script>
 
@@ -66,19 +67,30 @@
 			<button in:fade={{ duration: 400 }} on:click={() => (step = 1)}>get a room</button>
 		</section>
 	{:else if step === 1}
-		<Arrow width="2em" onClick={() => ((step = 0), (roomLink = ''))} ariaLabel="Close room link" />
 		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
 			<p>And how many will you be?</p>
-			<input type="number" bind:value={numPlayers} min="1" max="3" />
+			<div class="num-people">
+				{#each Array(3) as people, i}
+					<PeoplePresence
+						people={i + 1}
+						width="3em"
+						hoverEffects={true}
+						active={numPlayers === i + 1}
+						onClick={() => (numPlayers = i + 1)}
+					/>
+				{/each}
+			</div>
+
+			<!-- <input type="number" bind:value={numPlayers} min="1" max="3" /> -->
 			<button on:click={() => setNumPlayersAndProceed(numPlayers)}>Create Room</button>
 		</section>
+		<Arrow width="2em" onClick={() => ((step = 0), (roomLink = ''))} ariaLabel="Close room link" />
 		{#await roomCreation}
 			<p>Loading...</p>
 		{:catch error}
 			<p>There was an error creating the room. Please try again. {error}</p>
 		{/await}
 	{:else if step === 2}
-		<Arrow width="2em" onClick={() => ((step = 1), (roomLink = ''))} ariaLabel="Close room link" />
 		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
 			<button class="copy-link" use:clickToCopyAction={roomLink}>
 				<Copy fill="#7d7d7d" width="2em" />
@@ -87,6 +99,7 @@
 			<p>Ask your friends to join!</p>
 			<button on:click={goToRoom}>Enter battle</button>
 		</section>
+		<Arrow width="2em" onClick={() => ((step = 1), (roomLink = ''))} ariaLabel="Close room link" />
 	{/if}
 </main>
 
@@ -96,7 +109,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding-top: 10rem;
+		/* padding-top: 10rem; */
 		gap: 16px;
 	}
 	.gray-box {
@@ -111,6 +124,7 @@
 		padding: 16px;
 		gap: 16px;
 		border: 2px rgb(182, 182, 182) solid;
+		margin-bottom: 16px;
 	}
 
 	.box {
@@ -183,5 +197,11 @@
 
 	input[type='number']:active {
 		box-shadow: #d6d6e7 0 3px 7px inset;
+	}
+
+	.num-people {
+		display: flex;
+		justify-content: space-between;
+		width: 80%;
 	}
 </style>
