@@ -39,17 +39,20 @@ export function categorizeRhyme(rhyme, stats) {
  * @param {Set<string>} playersSet - Set of player IDs.
  * @returns {string} - The next player's ID.
  */
-export function getNextPlayerId(currentPlayerId, players) {
-	const currentPlayerIndex = players.indexOf(currentPlayerId);
-
-	// Check if the current player is the last one in the list
-	if (currentPlayerIndex !== -1 && currentPlayerIndex < players.length - 1) {
-		return players[currentPlayerIndex + 1];
-	} else if (currentPlayerIndex === players.length - 1) {
-		return players[0]; // If it's the last player, return the first player
-	} else {
-		return null; // Handle case where currentPlayerId is not found in the players list
+export function getNextPlayerId(players, currentId) {
+	// If no players are present
+	if (players.length === 0) {
+		return null;
 	}
+
+	// If currentId is not set or is not found in the list, return the first player
+	if (!currentId || players.indexOf(currentId) === -1) {
+		return players[0];
+	}
+
+	// Regular scenario, get the next player
+	const currentIndex = players.indexOf(currentId);
+	return currentIndex === players.length - 1 ? players[0] : players[currentIndex + 1];
 }
 
 /**

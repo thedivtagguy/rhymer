@@ -68,6 +68,7 @@ export default class RhymeSession {
 		}
 
 		gameState.session.players = players.length;
+		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
 		gameState.session.room = this.party.id;
 
 		if (players.length === 1 && !gameState.session.currentPlayerId) {
@@ -117,28 +118,7 @@ export default class RhymeSession {
 			await this._updateSessionData(players, gameState);
 		}
 
-		gameState.session.currentPlayerId =
-			gameState.session.currentPlayerId === connection.id
-				? getNextPlayerId(connection.id, players)
-				: gameState.session.currentPlayerId;
-
-		const currentPlayerIndex = players.indexOf(gameState.session.currentPlayerId);
-		const isSoloPlayer = players.length === 1;
-
-		// Check if it's a solo player who has already played their turn
-		if (isSoloPlayer && gameState.session.hasPlayedSingleTurn) {
-			this._broadcast({ type: 'wait_for_others_to_join' });
-		} else if (isSoloPlayer) {
-			gameState.session.hasPlayedSingleTurn = true; // Mark that the solo player has played their turn.
-		} else if (currentPlayerIndex === players.length - 1) {
-			gameState.session.currentPlayerId = players[0];
-			gameState.session.hasPlayedSingleTurn = false; // Reset the flag for multiple players.
-		} else {
-			gameState.session.currentPlayerId = getNextPlayerId(
-				gameState.session.currentPlayerId,
-				players
-			);
-		}
+		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
 
 		await this._updateSessionData(players, gameState);
 		this._broadcastSync(connection.id, gameState);
@@ -187,7 +167,10 @@ export default class RhymeSession {
 		} else {
 			// Otherwise, update currentPlayerId if necessary and persist updated data.
 			if (gameState.session.currentPlayerId === connection.id) {
-				gameState.session.currentPlayerId = getNextPlayerId(connection.id, players);
+				gameState.session.currentPlayerId = getNextPlayerId(
+					players,
+					gameState.session.currentPlayerId
+				);
 			}
 			await this._updateSessionData(players, gameState);
 		}
