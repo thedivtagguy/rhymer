@@ -1,32 +1,30 @@
 <script>
-	// @ts-nocheck
 	import { onMount, afterUpdate } from 'svelte';
 	import PartySocket from 'partysocket';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
 	import Keyboard from '../components/Keyboard.svelte';
-	import { onlinePlayers, numberOfPlayers } from '$lib/stores';
-	let roomId;
+	import { onlinePlayers } from '$lib/stores';
+	import { Confetti } from 'svelte-confetti';
+	import ToggleConfetti from './ToggleConfetti.svelte';
+
 	const uid = new ShortUniqueId({ length: 10 });
+	let roomId = $page.url.searchParams.get('id') || '';
 	let userId = uid.rnd();
-	let id = roomId;
-	let gameState = null;
-	let newRhyme = '';
+
 	let partySocket;
+	let gameState = null;
 	let myTurn = true;
-	let pressedKeys = [];
-	let currentUserId;
-	let nextPlayerId;
-	let newItemAdded = false;
 	let isRoomFull = false;
+	let gameFinished = false;
+	let rankings = [];
 
-	let guessedRhymesLength = 0;
+	let id;
+	let newRhyme = '';
+	let pressedKeys = [];
+	let newItemAdded = false;
 	let placeholderText = 'Enter a rhyme...';
-	$: if (gameState) {
-		placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
-	}
-
 	let categories = {
 		okay: {
 			fill: '#F6D682',
@@ -46,83 +44,87 @@
 		}
 	};
 
-	function submitRhyme(newRhymeValue, myTurn, id, userId) {
-		if (!myTurn) return;
-		if (newRhymeValue && (myTurn || gameState.session.players === 0)) {
-			const newGuess = { word: newRhymeValue };
-			partySocket.send(
-				JSON.stringify({ type: 'rhyme', rhyme: newGuess, room: roomId, user: userId })
-			);
-			newRhyme = ''; // Clear the global variable
-			newItemAdded = true;
-		}
-	}
-
-	let players;
-	let currentWord;
-	let guessedRhymes;
-	let maxPlayers = $numberOfPlayers;
-	let roomIsFull = false;
-
+	$: placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
 	$: if (gameState) {
-		players = gameState.session.players;
-		onlinePlayers.set(players);
-		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
-		guessedRhymes = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
+		onlinePlayers.set(gameState.session.players);
 	}
-	onMount(() => {
-		roomId = $page.url.searchParams.get('id') || '';
+
+	onMount(init);
+
+	function init() {
 		const isDevMode = process.env.NODE_ENV === 'development';
 		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
+		setupPartySocket(host);
+	}
+
+	function setupPartySocket(host) {
 		partySocket = new PartySocket({
 			host: host,
 			room: roomId,
 			id: userId
 		});
-
-		partySocket.addEventListener('message', (e) => {
-			const msg = JSON.parse(e.data);
-			if (msg.type === 'sync') {
-				gameState = msg.gameState;
-				if (players >= maxPlayers) {
-					roomIsFull = true;
-				}
-
-				gameState.session.room = roomId;
-				currentUserId = msg.currentPlayerId;
-				nextPlayerId = msg.nextPlayerId;
-				myTurn = msg.nextPlayerId === userId;
-			} else if (msg.type === 'room_full' && msg.room_full === true) {
-				isRoomFull = msg.room_full;
-			}
-		});
-
+		partySocket.addEventListener('message', handleSocketMessage);
 		partySocket.send(JSON.stringify({ type: 'initialize', room: roomId, multi: true }));
-	});
+	}
 
-	const onKeydown = (event) => {
-		const key = event.detail;
-
-		if (key === 'Enter') {
-			submitRhyme(newRhyme, myTurn, id);
-			pressedKeys = [];
-		} else if (key === 'Backspace') {
-			newRhyme = newRhyme.slice(0, -1);
-			pressedKeys.pop();
-		} else if (key.length === 1) {
-			newRhyme += key;
-			pressedKeys.push(key);
+	function handleSocketMessage(e) {
+		const msg = JSON.parse(e.data);
+		switch (msg.type) {
+			case 'sync':
+				handleSyncMessage(msg);
+				break;
+			case 'room_full':
+				isRoomFull = msg.connection_id === userId && msg.room_full;
+				break;
+			case 'game_finished':
+				gameFinished = true;
+				rankings = msg.rankings;
+				break;
 		}
-	};
+	}
 
-	let timelineElement;
-	const scrollToBottom = async (node) => {
-		node.scroll({ top: node.scrollHeight + 300, behavior: 'smooth' });
-	};
-	afterUpdate(() => {
-		if (gameState && timelineElement && newItemAdded) {
-			scrollToBottom(timelineElement);
-			newItemAdded = false; // Reset the variable after scrolling
+	function handleSyncMessage(msg) {
+		gameState = msg.gameState;
+		myTurn = msg.nextPlayerId === userId;
+	}
+
+	function submitRhyme() {
+		if (myTurn && newRhyme) {
+			partySocket.send(
+				JSON.stringify({ type: 'rhyme', rhyme: { word: newRhyme }, room: roomId, user: userId })
+			);
+			newRhyme = '';
+			newItemAdded = true;
+		}
+	}
+
+	let currentWord = null;
+	let currentGuesses = [];
+	let confettiContainer;
+	let previousWord = '';
+
+	function triggerConfetti() {
+		if (typeof confettiContainer === 'object' && confettiContainer.dispatchEvent) {
+			confettiContainer.dispatchEvent(new CustomEvent('activate'));
+		}
+	}
+
+	$: if (gameState && gameState.words.length) {
+		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
+		currentGuesses = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
+	}
+
+	$: afterUpdate(() => {
+		if (gameState && gameState.words.length) {
+			const latestWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
+
+			if (previousWord !== latestWord) {
+				triggerConfetti();
+				previousWord = latestWord;
+			}
+
+			currentWord = latestWord;
+			currentGuesses = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
 		}
 	});
 </script>
@@ -130,37 +132,55 @@
 <main>
 	{#if gameState}
 		{#if isRoomFull}
-			<p>Oops this room is full</p>
+			<p>Oops, this room is full! You can still watch though</p>
 		{/if}
-		<div class="gray-box" bind:this={timelineElement}>
-			{#each gameState.words as wordData}
-				<h2 class="target-word">{wordData.wordToRhyme.word}</h2>
+		{#if gameFinished}
+			<div class="rankings">
+				<h3>Game Finished! Here are the rankings:</h3>
+				<ul>
+					{#each rankings as playerRanking}
+						<li>{playerRanking.playerId}: {playerRanking.score}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+		{#if currentWord}
+			<div transition:slide={{ delay: 200, duration: 300 }}>
+				<div class="gray-box">
+					<ToggleConfetti bind:this={confettiContainer}>
+						<h2 class="target-word" slot="label">
+							{currentWord}
+						</h2>
+						<Confetti />
+					</ToggleConfetti>
 
-				<!-- Display guesses organized by player -->
-				{#each wordData.wordToRhyme.guesses as guessedRhyme (guessedRhyme.playerId)}
-					<div class="guesses">
-						<li
-							class="guess"
-							class:my-box={guessedRhyme.playerId === userId}
-							in:slide={{ y: -20, duration: 500 }}
-						>
-							<span class="word-guess">
-								<svg height="20" width="20">
-									<circle
-										cx="10"
-										cy="10"
-										r="8"
-										fill={categories[guessedRhyme.category].fill}
-										stroke={categories[guessedRhyme.category].stroke}
-										stroke-width="1"
-									/>
-								</svg>
-							</span>
-						</li>
+					<!-- Display guesses organized by player -->
+					<div class="guess-list">
+						{#each Array.from(new Set(currentGuesses.map((g) => g.playerId))) as playerId}
+							<div class={playerId === userId ? 'my-guesses' : 'other-guesses'}>
+								{#each currentGuesses.filter((g) => g.playerId === playerId) as guessedRhyme}
+									<div class="guess {guessedRhyme.playerId === userId ? 'my-box' : ''}">
+										<span class="word-guess">
+											<svg height="20" width="20">
+												<circle
+													cx="10"
+													cy="10"
+													r="8"
+													fill={categories[guessedRhyme.category].fill}
+													stroke={categories[guessedRhyme.category].stroke}
+													stroke-width="1"
+													opacity={guessedRhyme.playerId === userId || gameFinished ? 1 : 0.3}
+												/>
+											</svg>
+										</span>
+									</div>
+								{/each}
+							</div>
+						{/each}
 					</div>
-				{/each}
-			{/each}
-		</div>
+				</div>
+			</div>
+		{/if}
 
 		<div class="input-container">
 			<input
@@ -233,18 +253,38 @@
 			drop-shadow(0px 4px 0px color(display-p3 0.4583 0.2311 0.2311));
 	}
 
-	li {
-		list-style: none;
-	}
-
-	.guesses {
-		display: flex;
-		justify-content: start;
-		align-items: start;
-	}
 	.input-container {
 		max-width: 500px;
 		position: absolute;
 		bottom: 1%;
+	}
+
+	.gray-box {
+		display: flex;
+		flex-wrap: wrap;
+	}
+
+	.guess-list {
+		margin-top: 16px;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		max-width: 200px;
+	}
+
+	.word-guess > svg > circle {
+		opacity: 0.3; /* make non-current player's guesses initially less visible */
+	}
+
+	.my-box > .word-guess > svg > circle {
+		opacity: 1; /* make current player's guesses visible */
+	}
+
+	.my-guesses,
+	.other-guesses {
+		display: flex;
+		flex-direction: row;
+		justify-content: start;
+		gap: 8px;
 	}
 </style>

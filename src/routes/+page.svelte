@@ -15,40 +15,46 @@
 	}
 	const isDevMode = process.env.NODE_ENV === 'development';
 	const host = isDevMode
-		? 'localhost:37707/.netlify/functions/create-room'
+		? 'localhost:33141/.netlify/functions/create-room'
 		: '/.netlify/functions/create-room';
 	async function createRoom() {
 		const roomId = uid.rnd();
 
-		try {
-			const response = await fetch(host, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					roomId: roomId,
-					maxPlayers: numPlayers
-				})
-			});
+		return new Promise(async (resolve, reject) => {
+			try {
+				const response = await fetch(host, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						roomId: roomId,
+						maxPlayers: numPlayers
+					})
+				});
 
-			const data = await response.json();
-			console.log(data);
+				const data = await response.json();
 
-			if (response.ok) {
-				roomLink = `${window.location.origin}/battle/?id=${roomId}`;
-				step = 2;
-			} else {
-				console.error('Error creating room:', data);
+				if (response.ok) {
+					roomLink = `${window.location.origin}/battle/?id=${roomId}`;
+					step = 2;
+					resolve(data);
+				} else {
+					console.error('Error creating room:', data);
+					reject(data);
+				}
+			} catch (error) {
+				console.error('Network request failed:', error);
+				reject(error);
 			}
-		} catch (error) {
-			console.error('Network request failed:', error);
-		}
+		});
 	}
+
+	let roomCreation = null; // Holds the promise when createRoom is called
 
 	function setNumPlayersAndProceed(value) {
 		numberOfPlayers.set(value);
-		createRoom();
+		roomCreation = createRoom(); // Assign the promise to roomCreation
 	}
 </script>
 
@@ -66,6 +72,11 @@
 			<input type="number" bind:value={numPlayers} min="1" max="3" />
 			<button on:click={() => setNumPlayersAndProceed(numPlayers)}>Create Room</button>
 		</section>
+		{#await roomCreation}
+			<p>Loading...</p>
+		{:catch error}
+			<p>There was an error creating the room. Please try again. {error}</p>
+		{/await}
 	{:else if step === 2}
 		<Arrow width="2em" onClick={() => ((step = 1), (roomLink = ''))} ariaLabel="Close room link" />
 		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
