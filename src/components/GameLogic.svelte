@@ -11,7 +11,7 @@
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
-	let roomId = $page.url.searchParams.get('id') || '';
+	let roomId;
 	let userId = uid.rnd();
 
 	let partySocket;
@@ -56,6 +56,7 @@
 	function init() {
 		const isDevMode = process.env.NODE_ENV === 'development';
 		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
+		roomId = $page.url.searchParams.get('id') || '';
 		setupPartySocket(host);
 	}
 
