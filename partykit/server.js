@@ -100,7 +100,7 @@ export default class RhymeSession {
 		const { players, gameState } = await this._fetchAndSetSessionData();
 		const msg = JSON.parse(message);
 
-		if (msg.type === 'rhyme' && msg.room === this.party.id) {
+		if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
 			this._handleRhymeMessage(msg, connection, players, gameState);
 		}
 		if (isRoundFinished(gameState)) {
