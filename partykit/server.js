@@ -6,10 +6,11 @@ import {
 	isGameFinished,
 	isRoundFinished,
 	getNewWord,
-	calculateRankings
+	calculateRankings,
+	hasWordBeenPlayed
 } from './gameLogic.js';
 
-import { getMaxPlayersForRoom, fetchValidRhymes, cleanUpState } from './apiUtils.js';
+import { getMaxPlayersForRoom, cleanUpState } from './apiUtils.js';
 
 export default class RhymeSession {
 	constructor(party) {
@@ -101,13 +102,14 @@ export default class RhymeSession {
 			if (isGameFinished(gameState)) {
 				const rankings = calculateRankings(gameState);
 				this._broadcast({ type: 'game_finished', rankings: rankings });
+				const gameStateWithoutRhymes = cleanUpState({ ...gameState });
+				await this._updateSessionData(players, gameStateWithoutRhymes);
 				return;
 			}
 			const newWordContainer = await getNewWord('random');
 			gameState.words.push(newWordContainer);
 
-			const gameStateWithoutRhymes = cleanUpState({ ...gameState });
-			await this._updateSessionData(players, gameStateWithoutRhymes);
+			await this._updateSessionData(players, gameState);
 		}
 
 		gameState.session.currentPlayerId =
@@ -121,15 +123,16 @@ export default class RhymeSession {
 
 	_handleRhymeMessage(msg, connection, players, gameState) {
 		const currentWord = gameState.words[gameState.words.length - 1].wordToRhyme;
-		console.log(currentWord, msg.rhyme.word);
+		const guessedWord = msg.rhyme.word.toLowerCase().trim();
+
+		if (hasWordBeenPlayed(guessedWord, currentWord.guesses)) {
+			this._broadcast({ type: 'played_word', word: guessedWord });
+			return;
+		}
 		const matchingRhymes = currentWord.validRhymes.filter(
-			(validRhyme) => validRhyme.word.toLowerCase().trim() === msg.rhyme.word.toLowerCase().trim()
+			(validRhyme) => validRhyme.word.toLowerCase().trim() === guessedWord
 		);
-		console.log(
-			currentWord.validRhymes.filter(
-				(validRhyme) => validRhyme.word.toLowerCase().trim() === msg.rhyme.word.toLowerCase().trim()
-			)[0]
-		);
+
 		const isValidRhyme = matchingRhymes.length > 0;
 		console.log(currentWord.validRhymes);
 		currentWord.guesses.push({

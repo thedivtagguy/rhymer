@@ -50,13 +50,15 @@
 		min-height: 100vh;
 		max-width: 500px;
 		margin: auto;
+		justify-content: space-between;
 	}
 
 	main {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		padding: 1rem;
+		justify-content: start;
+		padding-top: 4rem;
 		width: 100%;
 		max-width: 64rem;
 		margin: 0 auto;

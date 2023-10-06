@@ -250,3 +250,14 @@ export function calculateRankings(gameState) {
 
 	return rankings;
 }
+
+/**
+ * Checks if a word has already been played based on the provided guesses.
+ *
+ * @param {string} word - The word to check.
+ * @param {Array<{ word: string }>} guesses - An array of guess objects.
+ * @returns {boolean} Returns `true` if the word has been played, otherwise `false`.
+ */
+export function hasWordBeenPlayed(word, guesses) {
+	return guesses.some((guess) => guess.word.toLowerCase().trim() === word.toLowerCase().trim());
+}

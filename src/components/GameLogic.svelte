@@ -8,6 +8,7 @@
 	import { onlinePlayers } from '$lib/stores';
 	import { Confetti } from 'svelte-confetti';
 	import ToggleConfetti from './ToggleConfetti.svelte';
+	import Circle from '$lib/svg/Circle.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId = $page.url.searchParams.get('id') || '';
@@ -75,6 +76,9 @@
 				break;
 			case 'room_full':
 				isRoomFull = msg.connection_id === userId && msg.room_full;
+				break;
+			case 'played_word':
+				alert(`The word "${msg.word}" has already been played!`);
 				break;
 			case 'game_finished':
 				gameFinished = true;
@@ -161,17 +165,13 @@
 								{#each currentGuesses.filter((g) => g.playerId === playerId) as guessedRhyme}
 									<div class="guess {guessedRhyme.playerId === userId ? 'my-box' : ''}">
 										<span class="word-guess">
-											<svg height="20" width="20">
-												<circle
-													cx="10"
-													cy="10"
-													r="8"
-													fill={categories[guessedRhyme.category].fill}
-													stroke={categories[guessedRhyme.category].stroke}
-													stroke-width="1"
-													opacity={guessedRhyme.playerId === userId || gameFinished ? 1 : 0.3}
-												/>
-											</svg>
+											<Circle
+												radius={20}
+												fill={categories[guessedRhyme.category].fill}
+												stroke={categories[guessedRhyme.category].stroke}
+												strokeWidth={1}
+												opacity={guessedRhyme.playerId === userId || gameFinished ? 1 : 0.3}
+											/>
 										</span>
 									</div>
 								{/each}
@@ -238,7 +238,7 @@
 	}
 
 	h2 {
-		width: 200px;
+		width: 250px;
 		height: 81px;
 		text-align: center;
 		text-transform: uppercase;
@@ -269,15 +269,8 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
-		max-width: 200px;
-	}
-
-	.word-guess > svg > circle {
-		opacity: 0.3; /* make non-current player's guesses initially less visible */
-	}
-
-	.my-box > .word-guess > svg > circle {
-		opacity: 1; /* make current player's guesses visible */
+		max-width: 250px;
+		height: 100px;
 	}
 
 	.my-guesses,

@@ -1,3 +1,4 @@
+import { getNewWord } from './gameLogic';
 /**
  * Fetches the maximum number of players allowed for a given room.
  *
@@ -44,22 +45,33 @@ export async function fetchValidRhymes(word, retryCount = 3) {
 			const response = await fetch(`https://rhymetimewords.netlify.app/words/debug/${word}.json`);
 
 			if (!response.ok) {
-				if (response.status === 404 && retryCount > 1) {
-					const newWordContainer = await getNewWord();
-					word = newWordContainer.wordToRhyme.word;
-					retryCount--;
-					continue; // Retry with the new word
-				} else {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
 			const data = await response.json();
+
+			// Check if the total property in stats object is 18 or less
+			if (data.stats.total <= 18) {
+				const newWordContainer = await getNewWord();
+				word = newWordContainer.wordToRhyme.word;
+				retryCount--;
+				continue; // Retry with the new word
+			}
+
 			return data.words ? data : { words: [], stats: {} };
 		} catch (error) {
-			if (retryCount === 1 || error.message !== 'HTTP error! status: 404') {
+			if (
+				retryCount === 1 ||
+				(error.message !== 'HTTP error! status: 404' && error.message !== 'HTTP error! status: 500')
+			) {
 				console.error(error);
 				return { words: [], stats: {} };
+			}
+
+			if (retryCount > 1) {
+				const newWordContainer = await getNewWord();
+				word = newWordContainer.wordToRhyme.word;
+				retryCount--;
 			}
 		}
 	}
