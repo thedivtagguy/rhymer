@@ -8,7 +8,7 @@
 	import { onlinePlayers } from '$lib/stores';
 	import { Confetti } from 'svelte-confetti';
 	import ToggleConfetti from './ToggleConfetti.svelte';
-	import Circle from '$lib/svg/Circle.svelte';
+	import GuessMarker from '$lib/svg/GuessMarker.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId = $page.url.searchParams.get('id') || '';
@@ -20,6 +20,7 @@
 	let isRoomFull = false;
 	let gameFinished = false;
 	let rankings = [];
+	let userHasToWait = false;
 
 	let id;
 	let newRhyme = '';
@@ -77,6 +78,8 @@
 			case 'room_full':
 				isRoomFull = msg.connection_id === userId && msg.room_full;
 				break;
+			case 'wait_for_others_to_join':
+				userHasToWait = true;
 			case 'played_word':
 				alert(`The word "${msg.word}" has already been played!`);
 				break;
@@ -137,6 +140,8 @@
 	{#if gameState}
 		{#if isRoomFull}
 			<p>Oops, this room is full! You can still watch though</p>
+		{:else if userHasToWait}
+			<p>Wait for others to join!</p>
 		{/if}
 		{#if gameFinished}
 			<div class="rankings">
@@ -165,12 +170,14 @@
 								{#each currentGuesses.filter((g) => g.playerId === playerId) as guessedRhyme}
 									<div class="guess {guessedRhyme.playerId === userId ? 'my-box' : ''}">
 										<span class="word-guess">
-											<Circle
-												radius={20}
+											<GuessMarker
+												radius={18}
 												fill={categories[guessedRhyme.category].fill}
 												stroke={categories[guessedRhyme.category].stroke}
 												strokeWidth={1}
-												opacity={guessedRhyme.playerId === userId || gameFinished ? 1 : 0.3}
+												{userId}
+												playerId={guessedRhyme.playerId}
+												{gameFinished}
 											/>
 										</span>
 									</div>

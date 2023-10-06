@@ -58,16 +58,21 @@ export default class RhymeSession {
 		]);
 		const maxPlayers = await getMaxPlayersForRoom(this.party.id, this.party);
 
-		if (players.size >= maxPlayers) {
+		if (players.length >= maxPlayers) {
 			this._broadcast({ type: 'room_full', room_full: true, connection_id: connection.id });
 			return;
 		}
 
-		players.add(connection.id);
-		gameState.session.players = players.size;
+		if (!players.includes(connection.id)) {
+			players.push(connection.id);
+		}
+
+		gameState.session.players = players.length;
 		gameState.session.room = this.party.id;
 
-		if (players.size === 1) gameState.session.currentPlayerId = connection.id;
+		if (players.length === 1 && !gameState.session.currentPlayerId) {
+			gameState.session.currentPlayerId = connection.id;
+		}
 
 		await Promise.all([
 			this._putToStorage('players', players),
@@ -117,6 +122,24 @@ export default class RhymeSession {
 				? getNextPlayerId(connection.id, players)
 				: gameState.session.currentPlayerId;
 
+		const currentPlayerIndex = players.indexOf(gameState.session.currentPlayerId);
+		const isSoloPlayer = players.length === 1;
+
+		// Check if it's a solo player who has already played their turn
+		if (isSoloPlayer && gameState.session.hasPlayedSingleTurn) {
+			this._broadcast({ type: 'wait_for_others_to_join' });
+		} else if (isSoloPlayer) {
+			gameState.session.hasPlayedSingleTurn = true; // Mark that the solo player has played their turn.
+		} else if (currentPlayerIndex === players.length - 1) {
+			gameState.session.currentPlayerId = players[0];
+			gameState.session.hasPlayedSingleTurn = false; // Reset the flag for multiple players.
+		} else {
+			gameState.session.currentPlayerId = getNextPlayerId(
+				gameState.session.currentPlayerId,
+				players
+			);
+		}
+
 		await this._updateSessionData(players, gameState);
 		this._broadcastSync(connection.id, gameState);
 	}
@@ -134,7 +157,6 @@ export default class RhymeSession {
 		);
 
 		const isValidRhyme = matchingRhymes.length > 0;
-		console.log(currentWord.validRhymes);
 		currentWord.guesses.push({
 			...msg.rhyme,
 			playerId: connection.id,
@@ -142,18 +164,25 @@ export default class RhymeSession {
 			category: isValidRhyme ? categorizeRhyme(matchingRhymes[0], currentWord.stats) : 'nope'
 		});
 
-		players.add(connection.id);
+		if (!players.includes(connection.id)) {
+			players.push(connection.id);
+		}
+
 		gameState.session.players = players.size;
 	}
 
 	async onClose(connection) {
 		const { players, gameState } = await this._fetchAndSetSessionData();
 
-		players.delete(connection.id); // Remove player
-		gameState.session.players = players.size; // Update player count
+		const index = players.indexOf(connection.id);
+		if (index !== -1) {
+			players.splice(index, 1);
+		}
+		// Remove player
+		gameState.session.players = players.length; // Update player count
 
 		// If no players left, reset the session data.
-		if (!players.size) {
+		if (!players.length) {
 			await this._resetSessionData();
 		} else {
 			// Otherwise, update currentPlayerId if necessary and persist updated data.

@@ -3,12 +3,11 @@ import { fetchValidRhymes } from './apiUtils';
 /**
  * Returns a new set representing the default players.
  *
- * @returns {Set} - An empty set representing players.
+ * @returns {Array} - An empty set representing players.
  */
 export function getDefaultPlayers() {
-	return new Set();
+	return [];
 }
-
 /**
  * Categorizes a given rhyme based on its score and statistical data.
  *
@@ -40,13 +39,17 @@ export function categorizeRhyme(rhyme, stats) {
  * @param {Set<string>} playersSet - Set of player IDs.
  * @returns {string} - The next player's ID.
  */
-export function getNextPlayerId(currentPlayerId, playersSet) {
-	const playersArray = Array.from(playersSet);
-	const currentPlayerIndex = playersArray.indexOf(currentPlayerId);
+export function getNextPlayerId(currentPlayerId, players) {
+	const currentPlayerIndex = players.indexOf(currentPlayerId);
 
-	return currentPlayerIndex !== -1 && currentPlayerIndex < playersArray.length - 1
-		? playersArray[currentPlayerIndex + 1]
-		: playersArray[0];
+	// Check if the current player is the last one in the list
+	if (currentPlayerIndex !== -1 && currentPlayerIndex < players.length - 1) {
+		return players[currentPlayerIndex + 1];
+	} else if (currentPlayerIndex === players.length - 1) {
+		return players[0]; // If it's the last player, return the first player
+	} else {
+		return null; // Handle case where currentPlayerId is not found in the players list
+	}
 }
 
 /**
@@ -101,7 +104,8 @@ export async function getInitialGameState() {
 			startedAt: new Date().getTime(),
 			currentPlayerId: null,
 			timer: null,
-			rhymeCounter: 0
+			rhymeCounter: 0,
+			hasPlayedSingleTurn: false
 		}
 	};
 }
