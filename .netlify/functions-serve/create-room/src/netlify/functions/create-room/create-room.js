@@ -13238,7 +13238,7 @@ var require_main6 = __commonJS({
 // netlify/functions/create-room/create-room.cjs
 var { createClient } = require_main6();
 var supabaseUrl = process.env.SUPABASE_URL;
-var supabaseKey = process.env.SUPBASE_API_KEY;
+var supabaseKey = process.env.SUPABASE_API_KEY;
 var supabase = createClient(supabaseUrl, supabaseKey);
 var handler = async (event) => {
   try {
@@ -13246,8 +13246,10 @@ var handler = async (event) => {
       return { statusCode: 405, body: "Method Not Allowed" };
     }
     const { roomId, maxPlayers } = JSON.parse(event.body);
-    const { data, error } = await supabase.from("rooms").insert([{ room_id: roomId, max_players: maxPlayers }]);
+    const { data, error } = await supabase.from("rhymer_rooms").insert([{ room_id: roomId, max_players: maxPlayers }]);
+    console.log("maxPlayers", maxPlayers);
     if (error) {
+      console.log(error);
       return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
     return {
@@ -13264,6 +13266,7 @@ var handler = async (event) => {
       body: JSON.stringify({ success: true, room: data })
     };
   } catch (error) {
+    console.log(error);
     return { statusCode: 500, body: error.toString() };
   }
 };

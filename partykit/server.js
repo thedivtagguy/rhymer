@@ -1,12 +1,14 @@
 import { words } from './shared';
-
-async function getMaxPlayersForRoom(roomId) {
-	const response = await fetch(`${party.env.SUPABASE_URL}/rhymer_rooms?room_id=eq.${roomId}`, {
-		headers: {
-			apikey: party.env.SUPABASE_API_KEY,
-			'Content-Type': 'application/json'
+async function getMaxPlayersForRoom(roomId, party) {
+	const response = await fetch(
+		`${party.env.SUPABASE_URL}/rest/v1/rhymer_rooms?select=max_players&room_id=eq.${roomId}`,
+		{
+			headers: {
+				apikey: party.env.SUPABASE_API_KEY,
+				'Content-Type': 'application/json'
+			}
 		}
-	});
+	);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch max_players for the room.');
@@ -15,6 +17,7 @@ async function getMaxPlayersForRoom(roomId) {
 	const data = await response.json();
 
 	if (data && data.length > 0) {
+		console.log(data[0].max_players);
 		return data[0].max_players;
 	} else {
 		throw new Error('Room not found.');
@@ -140,16 +143,16 @@ export default class RhymeSession {
 		const players = await this.party.storage.get('players');
 		let gameState = await this.party.storage.get('gameState');
 		const roomId = this.party.id; // assuming this is the room_id
-		const maxPlayers = await getMaxPlayersForRoom(roomId);
+		const maxPlayers = await getMaxPlayersForRoom(roomId, this.party);
 
 		// Check if the room has reached its max_players
 		if (players.size >= maxPlayers) {
 			// Handle the case when the room is full. For example, send a message to the user.
-			this.party.send(
-				connection.id,
+			this.party.broadcast(
 				JSON.stringify({
 					type: 'room_full',
-					message: 'The room is full!'
+					room_full: true,
+					connection_id: connection.id
 				})
 			);
 			return; // Early return to stop further processing

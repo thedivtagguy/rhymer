@@ -18,7 +18,6 @@
 	export let layout = 'standard';
 	export let noSwap = [];
 	export let keyClass = {};
-	export let highlightKeys = [];
 
 	// vars
 	let page = 0;
@@ -110,9 +109,7 @@
 					{#each keys as { value, display }}
 						<button
 							type="button"
-							class="key key--{value} {keyClass[value] || ''} {highlightKeys.includes(value)
-								? 'highlighted'
-								: ''}"
+							class="key key--{value} {keyClass[value] || ''}"
 							class:single={value.length === 1}
 							class:active={value === active}
 							on:touchstart={(e) => onKeyStart(e, value)}
@@ -132,16 +129,14 @@
 </div>
 
 <style>
-	.svelte-keyboard {
-		margin: 0 12px;
-	}
 	.row {
 		display: flex;
 		justify-content: center;
 		touch-action: manipulation;
 	}
 
-	button {
+	.key {
+		padding: 0;
 		appearance: none;
 		display: inline-block;
 		text-align: center;
@@ -164,10 +159,6 @@
 		opacity: var(--opacity, 1);
 		text-transform: var(--text-transform, none);
 		-webkit-tap-highlight-color: transparent;
-	}
-
-	button.single {
-		min-width: var(--min-width, 2rem);
 	}
 
 	button.active,

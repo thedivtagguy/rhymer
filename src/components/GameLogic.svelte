@@ -2,10 +2,10 @@
 	// @ts-nocheck
 	import { onMount, afterUpdate } from 'svelte';
 	import PartySocket from 'partysocket';
-	import Keyboard from './Keyboard.svelte';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
+	import Keyboard from '../components/Keyboard.svelte';
 	import { onlinePlayers, numberOfPlayers } from '$lib/stores';
 	let roomId;
 	const uid = new ShortUniqueId({ length: 10 });
@@ -19,6 +19,7 @@
 	let currentUserId;
 	let nextPlayerId;
 	let newItemAdded = false;
+	let isRoomFull = false;
 
 	let guessedRhymesLength = 0;
 	let placeholderText = 'Enter a rhyme...';
@@ -91,6 +92,8 @@
 				currentUserId = msg.currentPlayerId;
 				nextPlayerId = msg.nextPlayerId;
 				myTurn = msg.nextPlayerId === userId;
+			} else if (msg.type === 'room_full' && msg.room_full === true) {
+				isRoomFull = msg.room_full;
 			}
 		});
 
@@ -126,23 +129,18 @@
 
 <main>
 	{#if gameState}
-		{#if roomIsFull}
-			<div class="full-room-alert">
-				This room is full! Please try another room or wait for a spot to open up.
-			</div>
+		{#if isRoomFull}
+			<p>Oops this room is full</p>
 		{/if}
-
-		<div class="room-info">
-			<p class="players">Players: <span class="player-no">{players}</span></p>
-		</div>
-
-		<div class="timeline" bind:this={timelineElement}>
+		<div class="gray-box" bind:this={timelineElement}>
 			{#each gameState.words as wordData}
 				<h2 class="target-word">{wordData.wordToRhyme.word}</h2>
-				<div class="timeline-guesses">
-					{#each wordData.wordToRhyme.guesses as guessedRhyme}
+
+				<!-- Display guesses organized by player -->
+				{#each wordData.wordToRhyme.guesses as guessedRhyme (guessedRhyme.playerId)}
+					<div class="guesses">
 						<li
-							class="timeline-guess-box"
+							class="guess"
 							class:my-box={guessedRhyme.playerId === userId}
 							in:slide={{ y: -20, duration: 500 }}
 						>
@@ -158,16 +156,14 @@
 									/>
 								</svg>
 							</span>
-							{guessedRhyme.word}
 						</li>
-					{/each}
-				</div>
+					</div>
+				{/each}
 			{/each}
 		</div>
 
 		<div class="input-container">
 			<input
-				readonly
 				type="text"
 				class="line-input"
 				bind:value={newRhyme}
@@ -183,21 +179,20 @@
 			/>
 
 			<Keyboard
-				on:keydown={onKeydown}
-				highlightKeys={pressedKeys}
 				layout="wordle"
 				--height="3.5rem"
 				--background="#efefef"
 				--color="currentColor"
 				--border="none"
-				--border-radius="4px"
+				--border-radius="2px"
 				--box-shadow="none"
 				--flex="1"
 				--font-family="Nunito Variable, sans-serif"
 				--font-size="20px"
-				--font-weight="400"
+				--font-weight="600"
 				--margin="0.125rem"
 				--opacity="1"
+				--min-width="0.1rem"
 				--stroke-width="3px"
 				--text-transform="uppercase"
 				--active-background="#cdcdcd"
@@ -212,3 +207,44 @@
 		<p>Loading...</p>
 	{/if}
 </main>
+
+<style>
+	main {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		max-width: 700px;
+	}
+
+	h2 {
+		width: 200px;
+		height: 81px;
+		text-align: center;
+		text-transform: uppercase;
+		color: var(--color-bg-0);
+		line-height: 1.6;
+		font-size: 48px;
+		border-radius: 8px;
+		background: #242424;
+		background: color(display-p3 0.1417 0.1417 0.1417);
+		filter: drop-shadow(0px 8px 0px #da7a00) drop-shadow(0px 4px 0px #7e3739);
+		filter: drop-shadow(0px 8px 0px color(display-p3 0.8042 0.4959 0.134))
+			drop-shadow(0px 4px 0px color(display-p3 0.4583 0.2311 0.2311));
+	}
+
+	li {
+		list-style: none;
+	}
+
+	.guesses {
+		display: flex;
+		justify-content: start;
+		align-items: start;
+	}
+	.input-container {
+		max-width: 500px;
+		position: absolute;
+		bottom: 1%;
+	}
+</style>
