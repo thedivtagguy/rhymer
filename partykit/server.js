@@ -100,58 +100,51 @@ export default class RhymeSession {
 	}
 
 	async onMessage(message, connection) {
-		try {
-			const { players, gameState } = await this._fetchAndSetSessionData();
-			const msg = JSON.parse(message);
+		const { players, gameState } = await this._fetchAndSetSessionData();
+		const msg = JSON.parse(message);
 
-			if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
-				this._handleRhymeMessage(msg, connection, players, gameState);
-			}
-
-			if (isRoundFinished(gameState, maxMoves)) {
-				this._broadcastSync(connection.id, gameState);
-
-				setTimeout(async () => {
-					try {
-						if (isGameFinished(gameState)) {
-							const rankings = calculateRankings(gameState);
-							const gameStateWithoutRhymes = cleanUpState({ ...gameState });
-							this.progress++;
-							this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
-							this._broadcast({ type: 'game_finished', rankings: rankings });
-							await this._updateSessionData(players, gameStateWithoutRhymes);
-							return;
-						}
-
-						const newWordContainer = await getNewWord('random').catch((error) => {
-							console.error('Error fetching new word:', error);
-						});
-
-						if (newWordContainer) {
-							gameState.words.push(newWordContainer);
-						}
-
-						this.progress++; // Increment the progress
-						this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
-					} catch (error) {
-						console.error('Error inside setTimeout:', error);
-					}
-					await this._updateSessionData(players, gameState);
-					this._broadcastSync(connection.id, gameState);
-				}, 1000);
-
-				return;
-			}
-
-			gameState.session.currentPlayerId = getNextPlayerId(
-				players,
-				gameState.session.currentPlayerId
-			);
-			await this._updateSessionData(players, gameState);
-			this._broadcastSync(connection.id, gameState);
-		} catch (error) {
-			console.error('Error in onMessage:', error);
+		if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
+			this._handleRhymeMessage(msg, connection, players, gameState);
 		}
+
+		if (isRoundFinished(gameState, maxMoves)) {
+			this._broadcastSync(connection.id, gameState);
+
+			setTimeout(async () => {
+				try {
+					if (isGameFinished(gameState)) {
+						const rankings = calculateRankings(gameState);
+						const gameStateWithoutRhymes = cleanUpState({ ...gameState });
+						this.progress++;
+						this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+						this._broadcast({ type: 'game_finished', rankings: rankings });
+						await this._updateSessionData(players, gameStateWithoutRhymes);
+						return;
+					}
+
+					const newWordContainer = await getNewWord('random').catch((error) => {
+						console.error('Error fetching new word:', error);
+					});
+
+					if (newWordContainer) {
+						gameState.words.push(newWordContainer);
+					}
+
+					this.progress++; // Increment the progress
+					this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+				} catch (error) {
+					console.error('Error inside setTimeout:', error);
+				}
+				await this._updateSessionData(players, gameState);
+				this._broadcastSync(connection.id, gameState);
+			}, 100);
+
+			return;
+		}
+
+		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
+		await this._updateSessionData(players, gameState);
+		this._broadcastSync(connection.id, gameState);
 	}
 
 	_handleRhymeMessage(msg, connection, players, gameState) {

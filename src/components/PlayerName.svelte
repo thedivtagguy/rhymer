@@ -1,11 +1,12 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import { playerNameStore } from '$lib/stores';
 	const dispatch = createEventDispatcher();
 	let playerName = '';
 
 	function saveName() {
 		if (playerName.trim()) {
-			localStorage.setItem('playerName', playerName);
+			playerNameStore.set(playerName);
 			dispatch('nameSaved');
 		}
 	}

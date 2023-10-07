@@ -1,5 +1,6 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
+	import { playerNameStore } from '$lib/stores';
 	import PartySocket from 'partysocket';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
@@ -14,7 +15,7 @@
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId;
-	let userId = uid.rnd();
+	let userId = `${uid.rnd()}-${$playerNameStore}`;
 
 	let partySocket;
 	let gameState = null;
@@ -65,7 +66,6 @@
 		if (inputElement) {
 			inputElement.focus();
 		}
-
 		window.addEventListener('keydown', handleActualKeyPress);
 		window.addEventListener('keyup', handleActualKeyPress);
 	});
@@ -125,6 +125,12 @@
 			newRhyme = '';
 		}
 	}
+
+	function extractPlayerNameFromUserId(uid) {
+		const parts = uid.split('-');
+		return parts[parts.length - 1]; // Return the last part of the userId
+	}
+
 	function handleVirtualKeyPress(event) {
 		const { detail } = event;
 
@@ -175,18 +181,24 @@
 		{:else if userHasToWait}
 			<p>Wait for others to join!</p>
 		{:else if gameFinished}
-			<Dialog isOpen={gameFinished}>
-				<!-- For title slot -->
-				<h3 slot="title">And the winner is...</h3>
-
+			<Dialog isOpen={isGameFinish}>
 				<!-- For fields slot -->
-				<li slot="fields">
-					<ul>
-						{#each rankings as playerRanking}
-							<li>{playerRanking.playerId}: {playerRanking.score}</li>
+				<div slot="fields">
+					<ul class="leaderboard">
+						{#each rankings as playerRanking, index}
+							<li class="leaderboard-item">
+								<!-- {#if index === 0}<img src="gold-medal-icon.svg" class="medal" alt="Gold Medal" />{/if}
+						{#if index === 1}<img src="silver-medal-icon.svg" class="medal" alt="Silver Medal" />{/if}
+						{#if index === 2}<img src="bronze-medal-icon.svg" class="medal" alt="Bronze Medal" />{/if} -->
+								<span class="rank">{index + 1}</span>
+								<span class="player-name"
+									>{extractPlayerNameFromUserId(playerRanking.playerId)}</span
+								>
+								<span class="score">{playerRanking.score} points</span>
+							</li>
 						{/each}
 					</ul>
-				</li>
+				</div>
 			</Dialog>
 		{/if}
 
@@ -209,10 +221,8 @@
 									<div class="guess {guessedRhyme.playerId === userId ? 'my-box' : ''}">
 										<span class="word-guess">
 											<GuessMarker
+												category={guessedRhyme.category}
 												radius={18}
-												fill={categories[guessedRhyme.category].fill}
-												stroke={categories[guessedRhyme.category].stroke}
-												strokeWidth={1}
 												{userId}
 												playerId={guessedRhyme.playerId}
 												{gameFinished}
@@ -264,6 +274,7 @@
 				--opacity="1"
 				--min-width="0.1rem"
 				--stroke-width="3px"
+				below
 				--text-transform="uppercase"
 				--active-background="#cdcdcd"
 				--active-border="none"
@@ -375,5 +386,63 @@
 		transform: scalex(0);
 		transition: transform 0.3s ease;
 		background: #da7a00;
+	}
+
+	.leaderboard {
+		width: 100%;
+		padding: 0;
+		list-style-type: none;
+		background: #f4f4f4;
+		border-bottom: 1px solid #e1e1e1;
+		border-radius: 5px;
+	}
+
+	.leaderboard-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 10px 15px;
+		border-bottom: 1px solid #e1e1e1;
+		background-color: #fff;
+	}
+
+	.leaderboard-item:last-child {
+		border-bottom: none;
+	}
+
+	.rank {
+		font-weight: bold;
+		color: #333;
+		font-size: 1.2em;
+	}
+
+	.player-name {
+		flex: 1;
+		padding: 0 10px;
+		font-weight: 600;
+		text-transform: capitalize;
+		color: #555;
+	}
+
+	.score {
+		font-weight: bold;
+		color: white;
+		background-color: var(--orange);
+		padding: 2px 4px;
+		border-radius: 4px;
+		font-size: 1.1em;
+	}
+
+	button.primary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--black) !important;
+		height: 50px;
+		width: 60%;
+		color: white;
+		border-radius: 8px;
+		display: flex;
+		gap: 8px;
 	}
 </style>
