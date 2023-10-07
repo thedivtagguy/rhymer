@@ -31,6 +31,10 @@ export default class RhymeSession {
 		this.party.broadcast(JSON.stringify(messageObj));
 	}
 
+	_switchToNextPlayer(players, gameState) {
+		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
+	}
+
 	async _updateSessionData(players, gameState) {
 		return Promise.all([
 			this._putToStorage('players', players),
@@ -75,6 +79,8 @@ export default class RhymeSession {
 
 		if (players.length === 1 && !gameState.session.currentPlayerId) {
 			gameState.session.currentPlayerId = connection.id;
+		} else {
+			this._switchToNextPlayer(players, gameState);
 		}
 
 		await Promise.all([
@@ -141,8 +147,7 @@ export default class RhymeSession {
 
 			return;
 		}
-
-		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
+		this._switchToNextPlayer(players, gameState);
 		await this._updateSessionData(players, gameState);
 		this._broadcastSync(connection.id, gameState);
 	}
@@ -189,12 +194,8 @@ export default class RhymeSession {
 		if (!players.length) {
 			await this._resetSessionData();
 		} else {
-			// Otherwise, update currentPlayerId if necessary and persist updated data.
 			if (gameState.session.currentPlayerId === connection.id) {
-				gameState.session.currentPlayerId = getNextPlayerId(
-					players,
-					gameState.session.currentPlayerId
-				);
+				this._switchToNextPlayer(players, gameState);
 			}
 			await this._updateSessionData(players, gameState);
 		}
