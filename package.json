@@ -24,6 +24,7 @@
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-svelte": "^2.30.0",
+		"fractils": "^3.1.2",
 		"lucide-svelte": "^0.284.0",
 		"partykit": "^0.0.26",
 		"prettier": "^2.8.0",
