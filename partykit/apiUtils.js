@@ -24,7 +24,7 @@ export async function getMaxPlayersForRoom(roomId, party) {
 	);
 
 	if (!response.ok) {
-		throw new Error('Failed to fetch max_players for the room.');
+		return false;
 	}
 
 	const data = await response.json();
@@ -50,28 +50,22 @@ export async function fetchValidRhymes(word, retryCount = 3) {
 
 			const data = await response.json();
 
-			// Check if the total property in stats object is 18 or less
 			if (data.stats.total <= 18) {
+				retryCount--;
+				if (retryCount <= 0) {
+					throw new Error('Maximum retry count reached.');
+				}
 				const newWordContainer = await getNewWord();
 				word = newWordContainer.wordToRhyme.word;
-				retryCount--;
-				continue; // Retry with the new word
+			} else {
+				return data.words ? data : { words: [], stats: {} };
 			}
-
-			return data.words ? data : { words: [], stats: {} };
 		} catch (error) {
-			if (
-				retryCount === 1 ||
-				(error.message !== 'HTTP error! status: 404' && error.message !== 'HTTP error! status: 500')
-			) {
-				console.error(error);
-				return { words: [], stats: {} };
-			}
+			console.error(error);
+			retryCount--;
 
-			if (retryCount > 1) {
-				const newWordContainer = await getNewWord();
-				word = newWordContainer.wordToRhyme.word;
-				retryCount--;
+			if (retryCount <= 0) {
+				return { words: [], stats: {} };
 			}
 		}
 	}
@@ -103,4 +97,39 @@ export function cleanUpState(gameState, propertiesToDelete = ['validRhymes']) {
 		}
 	});
 	return gameState;
+}
+
+/**
+ * Deletes a row from the rhymer_rooms table given the room ID.
+ *
+ * @param {string} roomId - The ID of the room.
+ * @param {Object} party - The party object containing environment data.
+ * @param {Object} party.env - The environment data.
+ * @param {string} party.env.SUPABASE_URL - The URL for the Supabase API.
+ * @param {string} party.env.SUPABASE_API_KEY - The API key for accessing Supabase.
+ *
+ * @returns {Promise<boolean>} - A boolean indicating success (true) or failure (false).
+ *
+ * @throws {Error} Throws an error if the delete operation fails.
+ */
+export async function deleteRoomById(roomId, party) {
+	const response = await fetch(
+		`${party.env.SUPABASE_URL}/rest/v1/rhymer_rooms?room_id=eq.${roomId}`,
+		{
+			method: 'DELETE',
+			headers: {
+				apikey: party.env.SUPABASE_API_KEY,
+				'Content-Type': 'application/json'
+			}
+		}
+	);
+
+	if (!response.ok) {
+		throw new Error('Failed to delete the room by ID.');
+	}
+
+	// The API usually returns the deleted data. If there's no data in the response,
+	// the deletion failed or the row didn't exist in the first place.
+	const data = await response.json();
+	return !!data.length;
 }

@@ -145,7 +145,7 @@ button {
 
 
 button {
-	padding: 10px 20px;
+	padding: 10px 10px;
 	cursor: pointer;
 	background-color: #272727;
 	border-radius: 8px;
@@ -153,8 +153,8 @@ button {
 	font-weight: 700;
 	font-size: x-large;
 	color: rgb(232, 232, 232);
-	width: 300px;
-	height: 100px;
+	width: 250px;
+	height: 80px;
 }
 button:focus:not(:focus-visible) {
 	outline: none;
@@ -182,7 +182,7 @@ button:focus:not(:focus-visible) {
 .gray-box {
 	background-color: var(--box-gray);
 	height: 300px;
-	width: 300px;
+	width: 250px;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;

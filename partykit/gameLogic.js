@@ -20,15 +20,12 @@ export function getDefaultPlayers() {
  */
 export function categorizeRhyme(rhyme, stats) {
 	const { rhyme_score } = rhyme;
-	const { mean, cuts } = stats;
-	if (rhyme_score > cuts['50th'] && rhyme_score <= cuts['75th']) {
+	const { cuts } = stats;
+
+	if (rhyme_score <= cuts['75th']) {
 		return 'good';
-	} else if (rhyme_score > cuts['75th']) {
-		return 'great';
-	} else if (rhyme_score < mean) {
-		return 'okay';
 	} else {
-		return 'nope';
+		return 'great';
 	}
 }
 
@@ -65,31 +62,80 @@ export function getNextPlayerId(players, currentId) {
  */
 
 /**
- * Gets a new word for rhyming.
+ * Generates a new word for rhyming, and fetches its valid rhymes.
+ *
+ * This function chooses a word either based on the current date or
+ * random seeding, fetches the valid rhymes for that word, and returns
+ * a WordContainer structure with the word, its valid rhymes, an empty
+ * guesses array, and its rhyme statistics.
  *
  * @param {string} [option='date'] - The option to determine seed generation for the word. Defaults to 'date'.
  * @returns {Promise<WordContainer>} - A promise that resolves with a WordContainer object.
  */
 export async function getNewWord(option = 'date') {
 	let seed;
-
 	if (option === 'date') {
 		const today = new Date();
 		seed = today.getDate() + (today.getMonth() + 1) * 100 + today.getFullYear() * 10000;
 	} else {
-		// Default to random
 		seed = Math.floor(Math.random() * 10000);
 	}
 
-	const wordContainer = {
+	const wordToRhyme = words[seed % words.length];
+	const rhymesData = await fetchValidRhymesForIntegration(wordToRhyme);
+
+	return {
 		wordToRhyme: {
-			word: words[seed % words.length],
-			validRhymes: [],
-			guesses: []
+			word: wordToRhyme,
+			validRhymes: rhymesData.words || [],
+			guesses: [],
+			stats: rhymesData.stats || {}
 		}
 	};
+}
 
-	return await fetchRhymesForWord(wordContainer);
+/**
+ * Fetches valid rhymes for a given word from a specified API endpoint.
+ *
+ * This function attempts to fetch the valid rhymes for the provided word
+ * from an API endpoint. If the total number of rhymes is less than or
+ * equal to 18, the function retries with a new word until the retryCount
+ * becomes zero or valid data is obtained. If fetching fails, the function
+ * returns a default structure with an empty words array and an empty stats object.
+ *
+ * @param {string} word - The word to fetch valid rhymes for.
+ * @param {number} [retryCount=3] - Number of times to retry in case of insufficient rhymes or fetch errors.
+ * @returns {Promise<Object>} - An object containing valid rhymes and statistical data for the word.
+ */
+async function fetchValidRhymesForIntegration(word, retryCount = 3) {
+	while (retryCount > 0) {
+		try {
+			const response = await fetch(`https://rhymetimewords.netlify.app/words/debug/${word}.json`);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const data = await response.json();
+
+			if (data.stats && data.stats.total <= 18) {
+				retryCount--;
+				if (retryCount <= 0) {
+					throw new Error('Maximum retry count reached.');
+				}
+				const newWordContainer = await getNewWord();
+				word = newWordContainer.wordToRhyme.word;
+			} else {
+				return data.words ? data : { words: [], stats: {} };
+			}
+		} catch (error) {
+			console.error(error);
+			retryCount--;
+
+			if (retryCount <= 0) {
+				return { words: [], stats: {} };
+			}
+		}
+	}
 }
 
 /**
@@ -124,16 +170,15 @@ export async function fetchRhymesForWord(wordContainer) {
 
 	const word = wordContainer.wordToRhyme.word;
 	const rhymesData = await fetchValidRhymes(word);
-	const { words, stats } = rhymesData;
 
-	if (!Array.isArray(words)) {
-		console.error(`For word ${word}, fetched rhymes are not an array`);
-		return wordContainer; // Return the original unchanged object if there's an error
+	if (!rhymesData || !Array.isArray(rhymesData.words)) {
+		console.error(`For word ${word}, fetched rhymes are not an array or data is invalid.`);
+		return wordContainer;
 	}
 
-	const validRhymes = words.map((rhyme) => ({
+	const validRhymes = rhymesData.words.map((rhyme) => ({
 		...rhyme,
-		category: categorizeRhyme(rhyme, stats)
+		category: categorizeRhyme(rhyme, rhymesData.stats)
 	}));
 
 	return {
@@ -141,7 +186,7 @@ export async function fetchRhymesForWord(wordContainer) {
 		wordToRhyme: {
 			...wordContainer.wordToRhyme,
 			validRhymes,
-			stats
+			stats: rhymesData.stats
 		}
 	};
 }

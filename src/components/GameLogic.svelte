@@ -10,6 +10,7 @@
 	import ToggleConfetti from './ToggleConfetti.svelte';
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
 	import ProgressBar from './ProgressBar.svelte';
+	import Dialog from './Dialog.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId;
@@ -23,10 +24,12 @@
 	let rankings = [];
 	let userHasToWait = false;
 	let progress = 0;
-	let maxMoves;
+	let maxMoves = 5;
+	let playerGuessCount;
 
 	let id;
 	let newRhyme = '';
+	let inputElement;
 	let placeholderText = 'Enter a rhyme...';
 	let categories = {
 		okay: {
@@ -50,9 +53,18 @@
 	$: placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
 	$: if (gameState) {
 		onlinePlayers.set(gameState.session.players);
+		playerGuessCount =
+			gameState && currentGuesses
+				? currentGuesses.filter((guess) => guess.playerId === userId).length
+				: 0;
 	}
 
-	onMount(init);
+	onMount(() => {
+		init();
+		if (inputElement) {
+			inputElement.focus();
+		}
+	});
 
 	function init() {
 		const isDevMode = process.env.NODE_ENV === 'development';
@@ -107,39 +119,19 @@
 				JSON.stringify({ type: 'rhyme', rhyme: { word: newRhyme }, room: roomId, user: userId })
 			);
 			newRhyme = '';
-			newItemAdded = true;
 		}
 	}
 
 	let currentWord = null;
 	let currentGuesses = [];
-	let confettiContainer;
-	let previousWord = '';
-
-	function triggerConfetti() {
-		if (typeof confettiContainer === 'object' && confettiContainer.dispatchEvent) {
-			confettiContainer.dispatchEvent(new CustomEvent('activate'));
-		}
-	}
 
 	$: if (gameState && gameState.words.length) {
 		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
 		currentGuesses = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
 	}
-
-	$: afterUpdate(() => {
-		if (gameState && gameState.words.length) {
-			const latestWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
-
-			if (previousWord !== latestWord) {
-				triggerConfetti();
-				previousWord = latestWord;
-			}
-
-			currentWord = latestWord;
-			currentGuesses = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
-		}
-	});
+	$: if (gameState && inputElement) {
+		inputElement.focus();
+	}
 </script>
 
 <main>
@@ -148,22 +140,27 @@
 			<p>Oops, this room is full! You can still watch though</p>
 		{:else if userHasToWait}
 			<p>Wait for others to join!</p>
+		{:else if gameFinished}
+			<Dialog isOpen={gameFinished}>
+				<!-- For title slot -->
+				<h3 slot="title">And the winner is...</h3>
+
+				<!-- For fields slot -->
+				<li slot="fields">
+					<ul>
+						{#each rankings as playerRanking}
+							<li>{playerRanking.playerId}: {playerRanking.score}</li>
+						{/each}
+					</ul>
+				</li>
+			</Dialog>
 		{/if}
-		{#if gameFinished}
-			<div class="rankings">
-				<h3>Game Finished! Here are the rankings:</h3>
-				<ul>
-					{#each rankings as playerRanking}
-						<li>{playerRanking.playerId}: {playerRanking.score}</li>
-					{/each}
-				</ul>
-			</div>
-		{/if}
+
 		{#if currentWord}
 			<div transition:slide={{ delay: 200, duration: 300 }}>
 				<div class="gray-box">
 					<ProgressBar currentValue={progress} maxValue={maxMoves} />
-					<ToggleConfetti bind:this={confettiContainer}>
+					<ToggleConfetti>
 						<h2 class="target-word" slot="label">
 							{currentWord}
 						</h2>
@@ -197,24 +194,29 @@
 		{/if}
 
 		<div class="input-container">
-			<input
-				type="text"
-				class="line-input"
-				bind:value={newRhyme}
-				placeholder={placeholderText}
-				disabled={!myTurn || gameState.session.players === 0}
-				on:keydown={(e) => {
-					if (e.key === 'Enter') {
-						submitRhyme(newRhyme, myTurn, id, userId);
-					} else if (e.key === 'Backspace') {
-						newRhyme = newRhyme.slice(0, -1);
-					}
-				}}
-			/>
+			<div class="field">
+				<input
+					bind:this={inputElement}
+					type="text"
+					class="line-input"
+					bind:value={newRhyme}
+					placeholder={placeholderText}
+					disabled={!myTurn || gameState.session.players === 0 || playerGuessCount >= maxMoves}
+					on:keydown={(e) => {
+						if (e.key === 'Enter') {
+							submitRhyme(partySocket, newRhyme, myTurn, userId);
+						} else if (e.key === 'Backspace') {
+							newRhyme = newRhyme.slice(0, -1);
+						}
+					}}
+				/>
+
+				<div class="line" />
+			</div>
 
 			<Keyboard
 				layout="wordle"
-				--height="3.5rem"
+				--height="3.7rem"
 				--background="#efefef"
 				--color="currentColor"
 				--border="none"
@@ -251,7 +253,7 @@
 		max-width: 700px;
 	}
 
-	h2 {
+	h2.target-word {
 		width: 250px;
 		height: 81px;
 		text-align: center;
@@ -268,9 +270,13 @@
 	}
 
 	.input-container {
-		max-width: 500px;
+		width: 80%;
+		max-width: 600px;
 		position: absolute;
-		bottom: 1%;
+		bottom: 3%;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
 	}
 
 	.gray-box {
@@ -293,5 +299,46 @@
 		flex-direction: row;
 		justify-content: start;
 		gap: 8px;
+	}
+
+	.line-input {
+		background: 0;
+		border: 0;
+		outline: none;
+		width: 80vw;
+		max-width: 400px;
+		font-size: 1.5em;
+		transition: padding 0.3s 0.2s ease;
+	}
+
+	.line-input:focus {
+		padding-bottom: 5px;
+	}
+
+	.line-input:focus + .line:after {
+		transform: scaleX(1);
+	}
+
+	.field {
+		position: relative;
+	}
+
+	.line {
+		width: 100%;
+		height: 3px;
+		position: absolute;
+		bottom: -8px;
+		background: #bdc3c7;
+	}
+
+	.line:after {
+		content: ' ';
+		position: absolute;
+		float: right;
+		width: 100%;
+		height: 3px;
+		transform: scalex(0);
+		transition: transform 0.3s ease;
+		background: #da7a00;
 	}
 </style>

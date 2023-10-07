@@ -16,6 +16,7 @@ const maxMoves = 5;
 export default class RhymeSession {
 	constructor(party) {
 		this.party = party;
+		this.progress = 0;
 	}
 
 	async _getFromStorage(key) {
@@ -48,7 +49,7 @@ export default class RhymeSession {
 	async onStart() {
 		const gameState = await getInitialGameState();
 		gameState.session.room = this.party.id;
-
+		this.progress = 0;
 		await this._updateSessionData(getDefaultPlayers(), gameState);
 	}
 
@@ -99,33 +100,58 @@ export default class RhymeSession {
 	}
 
 	async onMessage(message, connection) {
-		const { players, gameState } = await this._fetchAndSetSessionData();
-		const msg = JSON.parse(message);
+		try {
+			const { players, gameState } = await this._fetchAndSetSessionData();
+			const msg = JSON.parse(message);
 
-		if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
-			this._handleRhymeMessage(msg, connection, players, gameState);
-		}
-		let progress = 1;
-		if (isRoundFinished(gameState, maxMoves)) {
-			if (isGameFinished(gameState)) {
-				const rankings = calculateRankings(gameState);
-				this._broadcast({ type: 'game_finished', rankings: rankings });
-				const gameStateWithoutRhymes = cleanUpState({ ...gameState });
-				await this._updateSessionData(players, gameStateWithoutRhymes);
+			if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
+				this._handleRhymeMessage(msg, connection, players, gameState);
+			}
+
+			if (isRoundFinished(gameState, maxMoves)) {
+				this._broadcastSync(connection.id, gameState);
+
+				setTimeout(async () => {
+					try {
+						if (isGameFinished(gameState)) {
+							const rankings = calculateRankings(gameState);
+							const gameStateWithoutRhymes = cleanUpState({ ...gameState });
+							this.progress++;
+							this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+							this._broadcast({ type: 'game_finished', rankings: rankings });
+							await this._updateSessionData(players, gameStateWithoutRhymes);
+							return;
+						}
+
+						const newWordContainer = await getNewWord('random').catch((error) => {
+							console.error('Error fetching new word:', error);
+						});
+
+						if (newWordContainer) {
+							gameState.words.push(newWordContainer);
+						}
+
+						this.progress++; // Increment the progress
+						this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+					} catch (error) {
+						console.error('Error inside setTimeout:', error);
+					}
+					await this._updateSessionData(players, gameState);
+					this._broadcastSync(connection.id, gameState);
+				}, 1000);
+
 				return;
 			}
-			const newWordContainer = await getNewWord('random');
-			gameState.words.push(newWordContainer);
-			progress++;
-			this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: progress });
 
+			gameState.session.currentPlayerId = getNextPlayerId(
+				players,
+				gameState.session.currentPlayerId
+			);
 			await this._updateSessionData(players, gameState);
+			this._broadcastSync(connection.id, gameState);
+		} catch (error) {
+			console.error('Error in onMessage:', error);
 		}
-
-		gameState.session.currentPlayerId = getNextPlayerId(players, gameState.session.currentPlayerId);
-
-		await this._updateSessionData(players, gameState);
-		this._broadcastSync(connection.id, gameState);
 	}
 
 	_handleRhymeMessage(msg, connection, players, gameState) {
@@ -140,6 +166,7 @@ export default class RhymeSession {
 			(validRhyme) => validRhyme.word.toLowerCase().trim() === guessedWord
 		);
 
+		console.log(currentWord, guessedWord);
 		const isValidRhyme = matchingRhymes.length > 0;
 		currentWord.guesses.push({
 			...msg.rhyme,

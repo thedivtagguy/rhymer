@@ -52,7 +52,6 @@
 	}
 
 	let roomCreation = null; // Holds the promise when createRoom is called
-	$: console.log(numPlayers);
 	function setNumPlayersAndProceed(value) {
 		numberOfPlayers.set(value);
 		roomCreation = createRoom();
@@ -70,13 +69,13 @@
 		<section in:fly={{ y: 20, duration: 200 }} class="gray-box">
 			<p>And how many will you be?</p>
 			<div class="num-people">
-				{#each Array(3) as people, i}
+				{#each Array(2) as people, i}
 					<PeoplePresence
-						people={i + 1}
+						people={i + 2}
 						width="3em"
 						hoverEffects={true}
-						active={numPlayers === i + 1}
-						onClick={() => (numPlayers = i + 1)}
+						active={numPlayers === i + 2}
+						onClick={() => (numPlayers = i + 2)}
 					/>
 				{/each}
 			</div>
@@ -115,7 +114,7 @@
 	.gray-box {
 		background-color: var(--box-gray);
 		height: 300px;
-		width: 300px;
+		width: 250px;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -125,6 +124,11 @@
 		gap: 16px;
 		border: 2px rgb(182, 182, 182) solid;
 		margin-bottom: 16px;
+	}
+
+	.gray-box > p {
+		width: 60%;
+		text-align: center;
 	}
 
 	.box {
@@ -163,40 +167,6 @@
 		justify-content: space-between;
 		align-items: center;
 		gap: 4px;
-	}
-
-	input[type='number'] {
-		background-color: #fefefe;
-		color: #7d7d7d;
-		font-size: 2rem;
-		text-align: center;
-		border: 2px #bbbbbb solid;
-		padding: 8px 12px;
-		border-radius: 8px;
-		width: 100%;
-		box-sizing: border-box;
-		transition: box-shadow 0.3s ease, transform 0.3s ease;
-	}
-
-	input[type='number']::-webkit-inner-spin-button,
-	input[type='number']::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
-	input[type='number']::-moz-inner-spin-button,
-	input[type='number']::-moz-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
-	input[type='number']:focus {
-		outline: none;
-		box-shadow: rgba(45, 35, 66, 0.4) 0 4px 4px;
-	}
-
-	input[type='number']:active {
-		box-shadow: #d6d6e7 0 3px 7px inset;
 	}
 
 	.num-people {

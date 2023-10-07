@@ -34,6 +34,7 @@
 		align-items: center;
 		font-size: 2rem;
 		color: var(--black);
+		padding: 0 16px;
 	}
 
 	.placeholder {
