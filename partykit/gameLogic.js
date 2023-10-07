@@ -242,7 +242,25 @@ export function handleRhymeMessage(msg, connection, players, gameState) {
  */
 export function isRoundFinished(gameState, maxMoves = 5) {
 	const currentWord = gameState.words[gameState.words.length - 1].wordToRhyme;
-	return currentWord.guesses.length >= maxMoves;
+
+	// If there are no guesses yet, the round isn't finished
+	if (currentWord.guesses.length === 0) {
+		return false;
+	}
+
+	const playerMoves = new Map();
+
+	currentWord.guesses.forEach((guess) => {
+		playerMoves.set(guess.playerId, (playerMoves.get(guess.playerId) || 0) + 1);
+	});
+
+	for (let [, moves] of playerMoves) {
+		if (moves < maxMoves) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**

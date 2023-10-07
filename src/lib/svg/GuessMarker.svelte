@@ -4,6 +4,7 @@
 	export let playerId = userId;
 	export let gameFinished = false;
 	export let radius = 10;
+	export let revealGuesses = false; // New prop for revealing markers
 
 	const categories = {
 		okay: {
@@ -30,9 +31,12 @@
 	let cx = radius + 2;
 	let cy = radius + 2;
 
-	$: effectiveFill = playerId === userId || gameFinished ? categories[category].fill : defaultFill;
+	$: effectiveFill =
+		playerId === userId || gameFinished || revealGuesses ? categories[category].fill : defaultFill;
 	$: effectiveStroke =
-		playerId === userId || gameFinished ? categories[category].stroke : defaultStroke;
+		playerId === userId || gameFinished || revealGuesses
+			? categories[category].stroke
+			: defaultStroke;
 
 	$: points = `
         ${cx},${cy - radius}

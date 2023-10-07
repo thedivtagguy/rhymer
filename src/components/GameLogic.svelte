@@ -18,6 +18,7 @@
 	let roomId;
 	let userId = `${uid.rnd()}-${$playerNameStore}`;
 
+	let revealGuesses = false;
 	let partySocket;
 	let gameState = null;
 	let myTurn = true;
@@ -92,6 +93,7 @@
 
 	function handleSocketMessage(e) {
 		const msg = JSON.parse(e.data);
+		console.log(msg);
 		switch (msg.type) {
 			case 'sync':
 				handleSyncMessage(msg);
@@ -106,12 +108,18 @@
 			case 'wait_for_others_to_join':
 				userHasToWait = true;
 			case 'played_word':
-				toastMessage = `The word "${msg.word}" has already been played!`;
-				showToast = true;
+				if (msg.user === userId) {
+					toastMessage = `The word "${msg.word}" has already been played!`;
+					showToast = true;
+				}
 				break;
 			case 'game_finished':
 				gameFinished = true;
 				rankings = msg.rankings;
+				break;
+			case 'reveal_guesses':
+				revealGuesses = true;
+				proceedToNextRound();
 				break;
 		}
 	}
@@ -164,6 +172,12 @@
 				activeKeys = activeKeys.filter((k) => k !== key);
 			}
 		}
+	}
+
+	function proceedToNextRound() {
+		partySocket.send(JSON.stringify({ type: 'next_round', room: roomId, user: userId }));
+
+		revealGuesses = false; // Reset for the next round
 	}
 
 	let currentWord = null;
@@ -240,6 +254,7 @@
 												{userId}
 												playerId={guessedRhyme.playerId}
 												{gameFinished}
+												{revealGuesses}
 											/>
 										</span>
 									</div>
