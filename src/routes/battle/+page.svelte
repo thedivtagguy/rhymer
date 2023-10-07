@@ -4,7 +4,7 @@
 	import GameLogic from '../../components/GameLogic.svelte';
 	import PlayerName from '../../components/PlayerName.svelte';
 
-	let showNameModal;
+	let showNameModal = true;
 
 	onMount(() => {
 		// Use the store's value to determine if the name modal should be shown
@@ -17,6 +17,7 @@
 </script>
 
 {#if showNameModal}
+	<!-- <PlayerName /> -->
 	<PlayerName on:nameSaved={handleNameSaved} />
 {:else}
 	<GameLogic />
