@@ -12,6 +12,7 @@
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 	import Dialog from './Dialog.svelte';
+	import Toast from './Toast.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId;
@@ -28,6 +29,8 @@
 	let maxMoves = 5;
 	let playerGuessCount;
 	let activeKeys = [];
+	let showToast = false;
+	let toastMessage = '';
 
 	let id;
 	let newRhyme = '';
@@ -103,7 +106,8 @@
 			case 'wait_for_others_to_join':
 				userHasToWait = true;
 			case 'played_word':
-				alert(`The word "${msg.word}" has already been played!`);
+				toastMessage = `The word "${msg.word}" has already been played!`;
+				showToast = true;
 				break;
 			case 'game_finished':
 				gameFinished = true;
@@ -172,10 +176,20 @@
 	$: if (gameState && inputElement) {
 		inputElement.focus();
 	}
+
+	$: if (showToast) {
+		setTimeout(() => {
+			showToast = false;
+		}, 3000);
+	}
 </script>
 
 <main>
 	{#if gameState}
+		{#if showToast}
+			<Toast message={toastMessage} duration={3000} />
+		{/if}
+
 		{#if isRoomFull}
 			<p>Oops, this room is full! You can still watch though</p>
 		{:else if userHasToWait}

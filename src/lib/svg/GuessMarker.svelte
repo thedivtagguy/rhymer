@@ -26,7 +26,7 @@
 
 	let defaultFill = '#D3D3D3';
 	let defaultStroke = '#808080';
-	let strokeWidth = 4;
+	let strokeWidth = 2;
 	let cx = radius + 2;
 	let cy = radius + 2;
 
