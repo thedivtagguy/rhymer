@@ -67,6 +67,9 @@ devDependencies:
   eslint-plugin-svelte:
     specifier: ^2.30.0
     version: 2.30.0(eslint@8.28.0)(svelte@4.0.5)
+  lucide-svelte:
+    specifier: ^0.284.0
+    version: 0.284.0(svelte@4.0.5)
   partykit:
     specifier: ^0.0.26
     version: 0.0.26(bufferutil@4.0.7)
@@ -2112,6 +2115,14 @@ packages:
     dependencies:
       js-tokens: 4.0.0
     dev: false
+
+  /lucide-svelte@0.284.0(svelte@4.0.5):
+    resolution: {integrity: sha512-T/ob9yPwN5lzI4x4KYJiv5QAHeNIorTmvQeKUXJSUlbRxBd14uNDp0KLyre+VbuPD6RfJfycsDIxEJ1dDYzw1w==}
+    peerDependencies:
+      svelte: '>=3 <5'
+    dependencies:
+      svelte: 4.0.5
+    dev: true
 
   /magic-string@0.27.0:
     resolution: {integrity: sha512-8UnnX2PeRAPZuN12svgR9j7M1uWMovg/CEnIwIG0LFkXSJJe4PdfUGiTGl8V9bsBHFUtfVINcSyYxd7q+kx9fA==}
