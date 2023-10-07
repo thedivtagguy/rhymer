@@ -67,6 +67,9 @@ devDependencies:
   eslint-plugin-svelte:
     specifier: ^2.30.0
     version: 2.30.0(eslint@8.28.0)(svelte@4.0.5)
+  fractils:
+    specifier: ^3.1.2
+    version: 3.1.2
   lucide-svelte:
     specifier: ^0.284.0
     version: 0.284.0(svelte@4.0.5)
@@ -1796,6 +1799,13 @@ packages:
       fetch-blob: 3.2.0
     dev: true
 
+  /fractils@3.1.2:
+    resolution: {integrity: sha512-+ak3Vb0Q1ZxJiUuQ6xJPuE80eCuPKOuEbRfv7zZBZPmR8i8tyM/Gc1hrKeg7S9OkhGbXE5z599cCcO0qxxDvXA==}
+    dependencies:
+      esm-env: 1.0.0
+      svelte: 3.59.2
+    dev: true
+
   /fs-minipass@2.1.0:
     resolution: {integrity: sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==}
     engines: {node: '>= 8'}
@@ -2942,6 +2952,11 @@ packages:
     dependencies:
       svelte: 4.0.5
       tslib: 2.6.2
+    dev: true
+
+  /svelte@3.59.2:
+    resolution: {integrity: sha512-vzSyuGr3eEoAtT/A6bmajosJZIUWySzY2CzB3w2pgPvnkUjGqlDnsNnA0PMO+mMAhuyMul6C2uuZzY6ELSkzyA==}
+    engines: {node: '>= 8'}
     dev: true
 
   /svelte@4.0.5:
