@@ -16,7 +16,7 @@
 </script>
 
 <svelte:head>
-	<title>Keyrime</title>
+	<title>rimer</title>
 </svelte:head>
 <div class="app">
 	<header>
@@ -28,7 +28,7 @@
 			{/if}
 		</div>
 		<a href="/">
-			<h1>keyrime</h1>
+			<h1>rimer</h1>
 		</a>
 		<div use:melt={$trigger} class="trigger">
 			<QuestionMark />
