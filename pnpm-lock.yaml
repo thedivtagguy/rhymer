@@ -46,6 +46,9 @@ devDependencies:
   '@supabase/gotrue-js':
     specifier: ^2.55.0
     version: 2.55.0
+  '@supabase/node-fetch':
+    specifier: ^2.6.13
+    version: 2.6.13
   '@supabase/supabase-js':
     specifier: ^2.38.0
     version: 2.38.0
@@ -862,6 +865,13 @@ packages:
     resolution: {integrity: sha512-wZAP66Lo68iROKo33m8seY30rCeGiR34leMEZ80j9fPm+/ar6h3y43Hb7f9F2STVMwT3Sv+aM+w0yCon5bih4g==}
     dependencies:
       '@supabase/node-fetch': 2.6.14
+    dev: true
+
+  /@supabase/node-fetch@2.6.13:
+    resolution: {integrity: sha512-rEHQaDVzxLZMCK3p+JW2nzEsK4AJpOQhetppaqAzrFum0Ub8wcnoM/8f1dWRZSulY5fRDP6rJaWT/8X3VleCzg==}
+    engines: {node: 4.x || >=6.0.0}
+    dependencies:
+      whatwg-url: 5.0.0
     dev: true
 
   /@supabase/node-fetch@2.6.14:
