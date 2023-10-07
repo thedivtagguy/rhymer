@@ -9,6 +9,7 @@
 	import { Confetti } from 'svelte-confetti';
 	import ToggleConfetti from './ToggleConfetti.svelte';
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
+	import ProgressBar from './ProgressBar.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let roomId;
@@ -21,11 +22,11 @@
 	let gameFinished = false;
 	let rankings = [];
 	let userHasToWait = false;
+	let progress = 1;
+	let maxMoves;
 
 	let id;
 	let newRhyme = '';
-	let pressedKeys = [];
-	let newItemAdded = false;
 	let placeholderText = 'Enter a rhyme...';
 	let categories = {
 		okay: {
@@ -75,6 +76,10 @@
 		switch (msg.type) {
 			case 'sync':
 				handleSyncMessage(msg);
+				break;
+			case 'progress':
+				maxMoves = msg.maxMoves;
+				progress = msg.progress;
 				break;
 			case 'room_full':
 				isRoomFull = msg.connection_id === userId && msg.room_full;
@@ -157,6 +162,7 @@
 		{#if currentWord}
 			<div transition:slide={{ delay: 200, duration: 300 }}>
 				<div class="gray-box">
+					<ProgressBar currentValue={progress} maxValue={maxMoves} />
 					<ToggleConfetti bind:this={confettiContainer}>
 						<h2 class="target-word" slot="label">
 							{currentWord}

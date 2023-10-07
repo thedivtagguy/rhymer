@@ -11,6 +11,7 @@ import {
 } from './gameLogic.js';
 
 import { getMaxPlayersForRoom, cleanUpState } from './apiUtils.js';
+const maxMoves = 5;
 
 export default class RhymeSession {
 	constructor(party) {
@@ -104,7 +105,8 @@ export default class RhymeSession {
 		if (msg.type === 'rhyme' && msg.room === this.party.id && msg.rhyme.word) {
 			this._handleRhymeMessage(msg, connection, players, gameState);
 		}
-		if (isRoundFinished(gameState)) {
+		let progress = 1;
+		if (isRoundFinished(gameState, maxMoves)) {
 			if (isGameFinished(gameState)) {
 				const rankings = calculateRankings(gameState);
 				this._broadcast({ type: 'game_finished', rankings: rankings });
@@ -114,6 +116,8 @@ export default class RhymeSession {
 			}
 			const newWordContainer = await getNewWord('random');
 			gameState.words.push(newWordContainer);
+			progress++;
+			this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: progress });
 
 			await this._updateSessionData(players, gameState);
 		}
