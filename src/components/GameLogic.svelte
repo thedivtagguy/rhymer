@@ -1,12 +1,11 @@
 <script>
 	import { onMount } from 'svelte';
-	import { playerNameStore } from '$lib/stores';
+	import { playerNameStore, onlinePlayers } from '$lib/stores';
 	import PartySocket from 'partysocket';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
 	import Keyboard from '../components/Keyboard.svelte';
-	import { onlinePlayers } from '$lib/stores';
 	import { Confetti } from 'svelte-confetti';
 	import ToggleConfetti from './ToggleConfetti.svelte';
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
@@ -15,61 +14,30 @@
 	import Toast from './Toast.svelte';
 
 	const uid = new ShortUniqueId({ length: 10 });
-	let roomId;
 	let userId = `${uid.rnd()}-${$playerNameStore}`;
-
-	let revealGuesses = false;
+	let roomId = $page.url.searchParams.get('id') || '';
 	let partySocket;
+
 	let gameState = null;
-	let myTurn = true;
-	let isRoomFull = false;
-	let gameFinished = false;
-	let rankings = [];
-	let userHasToWait = false;
-	let progress = 0;
-	let maxMoves = 5;
-	let playerGuessCount;
-	let activeKeys = [];
-	let showToast = false;
-	let toastMessage = '';
-
-	let id;
-	let newRhyme = '';
-	let inputElement;
-	let placeholderText = 'Enter a rhyme...';
-	let categories = {
-		okay: {
-			fill: '#F6D682',
-			stroke: '#D6B336'
-		},
-		good: {
-			fill: '#C8D5BB',
-			stroke: '#A0BE83'
-		},
-		great: {
-			fill: '#A14EBF',
-			stroke: '#632B78'
-		},
-		nope: {
-			fill: '#3C3744',
-			stroke: '#1E1B22'
-		}
-	};
-
-	$: placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
-	$: if (gameState) {
-		onlinePlayers.set(gameState.session.players);
-		playerGuessCount =
-			gameState && currentGuesses
-				? currentGuesses.filter((guess) => guess.playerId === userId).length
-				: 0;
-	}
+	let revealGuesses = false,
+		myTurn = true,
+		isRoomFull = false,
+		gameFinished = false,
+		userHasToWait = false;
+	let progress = 0,
+		maxMoves = 5,
+		playerGuessCount,
+		newRhyme = '',
+		toastMessage = '',
+		showToast = false;
+	let rankings = [],
+		activeKeys = [];
+	let currentWord = null,
+		currentGuesses = [];
+	let placeholderText, inputElement;
 
 	onMount(() => {
 		init();
-		if (inputElement) {
-			inputElement.focus();
-		}
 		window.addEventListener('keydown', handleActualKeyPress);
 		window.addEventListener('keyup', handleActualKeyPress);
 	});
@@ -77,23 +45,18 @@
 	function init() {
 		const isDevMode = process.env.NODE_ENV === 'development';
 		const host = isDevMode ? 'localhost:1999' : 'rhymetime.thedivtagguy.partykit.dev';
-		roomId = $page.url.searchParams.get('id') || '';
 		setupPartySocket(host);
+		if (inputElement) inputElement.focus();
 	}
 
 	function setupPartySocket(host) {
-		partySocket = new PartySocket({
-			host: host,
-			room: roomId,
-			id: userId
-		});
+		partySocket = new PartySocket({ host, room: roomId, id: userId });
 		partySocket.addEventListener('message', handleSocketMessage);
 		partySocket.send(JSON.stringify({ type: 'initialize', room: roomId, multi: true }));
 	}
 
 	function handleSocketMessage(e) {
 		const msg = JSON.parse(e.data);
-		console.log(msg);
 		switch (msg.type) {
 			case 'sync':
 				handleSyncMessage(msg);
@@ -107,6 +70,7 @@
 				break;
 			case 'wait_for_others_to_join':
 				userHasToWait = true;
+				break;
 			case 'played_word':
 				if (msg.user === userId) {
 					toastMessage = `The word "${msg.word}" has already been played!`;
@@ -139,63 +103,44 @@
 	}
 
 	function extractPlayerNameFromUserId(uid) {
-		const parts = uid.split('-');
-		return parts[parts.length - 1]; // Return the last part of the userId
+		return uid.split('-').pop();
 	}
 
 	function handleVirtualKeyPress(event) {
 		const { detail } = event;
-
-		switch (detail) {
-			case 'Backspace':
-				newRhyme = newRhyme.slice(0, -1);
-				break;
-			case 'Space':
-				newRhyme += ' ';
-				break;
-			case 'Enter':
-				submitRhyme();
-				break;
-			default:
-				newRhyme += detail;
-		}
+		if (detail === 'Backspace') newRhyme = newRhyme.slice(0, -1);
+		else if (detail === 'Space') newRhyme += ' ';
+		else if (detail === 'Enter') submitRhyme();
+		else newRhyme += detail;
 	}
 
 	function handleActualKeyPress(event) {
 		const key = event.key.toLowerCase();
 		if (key.length === 1 || ['backspace', 'enter', 'shift'].includes(key)) {
-			if (event.type === 'keydown') {
-				if (!activeKeys.includes(key)) {
-					activeKeys = [...activeKeys, key];
-				}
-			} else if (event.type === 'keyup') {
-				activeKeys = activeKeys.filter((k) => k !== key);
-			}
+			activeKeys =
+				event.type === 'keydown' && !activeKeys.includes(key)
+					? [...activeKeys, key]
+					: activeKeys.filter((k) => k !== key);
 		}
 	}
 
 	function proceedToNextRound() {
 		partySocket.send(JSON.stringify({ type: 'next_round', room: roomId, user: userId }));
-
-		revealGuesses = false; // Reset for the next round
+		revealGuesses = false;
 	}
 
-	let currentWord = null;
-	let currentGuesses = [];
-
+	$: placeholderText = myTurn ? 'Enter a rhyme...' : 'Wait your turn';
+	$: if (gameState) {
+		onlinePlayers.set(gameState.session.players);
+		playerGuessCount = currentGuesses?.filter((guess) => guess.playerId === userId).length || 0;
+	}
 	$: if (gameState && gameState.words.length) {
-		currentWord = gameState.words[gameState.words.length - 1].wordToRhyme.word;
-		currentGuesses = gameState.words[gameState.words.length - 1].wordToRhyme.guesses;
+		const latestWord = gameState.words[gameState.words.length - 1].wordToRhyme;
+		currentWord = latestWord.word;
+		currentGuesses = latestWord.guesses;
 	}
-	$: if (gameState && inputElement) {
-		inputElement.focus();
-	}
-
-	$: if (showToast) {
-		setTimeout(() => {
-			showToast = false;
-		}, 3000);
-	}
+	$: if (inputElement || (inputElement && myTurn)) inputElement.focus();
+	$: if (showToast) setTimeout(() => (showToast = false), 3000);
 </script>
 
 <main>
