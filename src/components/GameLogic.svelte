@@ -22,7 +22,7 @@
 	let gameFinished = false;
 	let rankings = [];
 	let userHasToWait = false;
-	let progress = 1;
+	let progress = 0;
 	let maxMoves;
 
 	let id;
