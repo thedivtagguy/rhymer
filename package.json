@@ -17,6 +17,7 @@
 		"@melt-ui/svelte": "^0.52.0",
 		"@neoconfetti/svelte": "^1.0.0",
 		"@supabase/functions-js": "^2.1.5",
+		"@supabase/gotrue-js": "^2.55.0",
 		"@supabase/supabase-js": "^2.38.0",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/adapter-static": "^2.0.3",
