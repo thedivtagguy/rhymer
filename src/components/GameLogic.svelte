@@ -1,5 +1,5 @@
 <script>
-	import { onMount, afterUpdate } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import PartySocket from 'partysocket';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
@@ -26,6 +26,7 @@
 	let progress = 0;
 	let maxMoves = 5;
 	let playerGuessCount;
+	let activeKeys = [];
 
 	let id;
 	let newRhyme = '';
@@ -64,6 +65,9 @@
 		if (inputElement) {
 			inputElement.focus();
 		}
+
+		window.addEventListener('keydown', handleActualKeyPress);
+		window.addEventListener('keyup', handleActualKeyPress);
 	});
 
 	function init() {
@@ -119,6 +123,36 @@
 				JSON.stringify({ type: 'rhyme', rhyme: { word: newRhyme }, room: roomId, user: userId })
 			);
 			newRhyme = '';
+		}
+	}
+	function handleVirtualKeyPress(event) {
+		const { detail } = event;
+
+		switch (detail) {
+			case 'Backspace':
+				newRhyme = newRhyme.slice(0, -1);
+				break;
+			case 'Space':
+				newRhyme += ' ';
+				break;
+			case 'Enter':
+				submitRhyme();
+				break;
+			default:
+				newRhyme += detail;
+		}
+	}
+
+	function handleActualKeyPress(event) {
+		const key = event.key.toLowerCase();
+		if (key.length === 1 || ['backspace', 'enter', 'shift'].includes(key)) {
+			if (event.type === 'keydown') {
+				if (!activeKeys.includes(key)) {
+					activeKeys = [...activeKeys, key];
+				}
+			} else if (event.type === 'keyup') {
+				activeKeys = activeKeys.filter((k) => k !== key);
+			}
 		}
 	}
 
@@ -205,8 +239,6 @@
 					on:keydown={(e) => {
 						if (e.key === 'Enter') {
 							submitRhyme(partySocket, newRhyme, myTurn, userId);
-						} else if (e.key === 'Backspace') {
-							newRhyme = newRhyme.slice(0, -1);
 						}
 					}}
 				/>
@@ -215,6 +247,8 @@
 			</div>
 
 			<Keyboard
+				on:keydown={handleVirtualKeyPress}
+				keyClass={activeKeys.reduce((acc, key) => ({ ...acc, [key]: 'active' }), {})}
 				layout="wordle"
 				--height="3.7rem"
 				--background="#efefef"
@@ -289,7 +323,7 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
-		max-width: 250px;
+		max-width: 280px;
 		height: 100px;
 	}
 
@@ -298,7 +332,8 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: start;
-		gap: 8px;
+		gap: 16px;
+		width: 100%;
 	}
 
 	.line-input {

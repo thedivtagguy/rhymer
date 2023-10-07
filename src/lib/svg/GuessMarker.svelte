@@ -2,7 +2,7 @@
 	export let fill = '#F6D682';
 	export let stroke = '#D6B336';
 	export let radius = 10;
-	export let strokeWidth = 2;
+	export let strokeWidth = 4;
 	export let userId;
 	export let playerId;
 	export let gameFinished = false;
