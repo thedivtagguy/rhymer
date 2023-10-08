@@ -17,7 +17,7 @@
 	const isDevMode = process.env.NODE_ENV === 'development';
 	const host = isDevMode
 		? 'localhost:33141/.netlify/functions/create-room'
-		: '/.netlify/functions/create-room';
+		: '/.netlify/my-functions/create-room';
 	async function createRoom() {
 		const roomId = uid.rnd();
 
