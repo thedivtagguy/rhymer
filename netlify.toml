@@ -1,2 +1,4 @@
 [build]
   functions = "netlify/my-functions"
+[functions]
+  node_bundler = "zisi"
