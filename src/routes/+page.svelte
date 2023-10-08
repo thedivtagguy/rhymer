@@ -15,9 +15,7 @@
 		window.location.href = roomLink;
 	}
 	const isDevMode = process.env.NODE_ENV === 'development';
-	const host = isDevMode
-		? 'localhost:33141/.netlify/functions/create-room'
-		: '/.netlify/functions/create-room';
+	const host = isDevMode ? 'http://localhost:3000/api/create-room' : '/api/create-room';
 	async function createRoom() {
 		const roomId = uid.rnd();
 
