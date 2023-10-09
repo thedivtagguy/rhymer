@@ -15,7 +15,7 @@
 
 	const uid = new ShortUniqueId({ length: 10 });
 	let userId = `${uid.rnd()}-${$playerNameStore}`;
-	let roomId = $page.url.searchParams.get('id') || '';
+	let roomId;
 	let partySocket;
 
 	let gameState = null;
@@ -40,6 +40,7 @@
 		init();
 		window.addEventListener('keydown', handleActualKeyPress);
 		window.addEventListener('keyup', handleActualKeyPress);
+		roomId = $page.url.searchParams.get('id') || '';
 	});
 
 	function init() {
