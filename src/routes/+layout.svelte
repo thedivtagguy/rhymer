@@ -50,15 +50,10 @@
 			<h2 use:melt={$title} class="dialog-title">Hullo, this is Rimer</h2>
 			<p use:melt={$description} class="dialog-description">
 				The rules are simple. Each game session has 5 rounds with five turns. Guess the best rhymes
-				for the word. Each valid rhyme scores based on:
+				for the word, and get a score for each rhyme:
 			</p>
-			<ul class="score-criteria">
-				<li>Variation from initial word</li>
-				<li>Quality of rhyme</li>
-				<li>Word length</li>
-			</ul>
+
 			<div class="rhyme-categories">
-				<!-- Utilizing components is good for code reuse and cleanliness, but for the context of this example, I'll keep the original structure -->
 				<div class="rhyme-category">
 					<GuessMarker radius={25} category="nope" />
 					<span>Missed the beat</span>
@@ -76,7 +71,13 @@
 				</div>
 			</div>
 			<p use:melt={$description} class="dialog-description">
-				At the end, the player with the highest score wins!
+				Each rhyme is scored based on how different it is from the initial word, quality of rhyme
+				and the length of word.
+			</p>
+
+			<p class="dialog-description">
+				Maintain your daily highscore, there's a new word everyday! Or if you're playing with
+				friends, the player with the highest scores at the end of the game wins.
 			</p>
 			<button use:melt={$close} aria-label="close" class="close-btn">
 				<X />
@@ -196,16 +197,7 @@
 
 	.dialog-description {
 		margin: 1rem 0;
-		font-size: 18px;
-	}
-
-	.score-criteria {
-		margin: 1rem 0;
-		padding-left: 1.5rem;
-	}
-
-	.score-criteria li {
-		margin-bottom: 0.5rem;
+		font-size: 16px;
 	}
 
 	.rhyme-categories {

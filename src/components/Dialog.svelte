@@ -32,9 +32,9 @@
 			}}
 			use:melt={$content}
 		>
-			<!-- <h3 use:melt={$title} class="title">
-				<slot name="title">Edit profile</slot>
-			</h3> -->
+			<h3 use:melt={$title} class="title">
+				<slot name="title" />
+			</h3>
 			<p use:melt={$description} class="description">
 				<slot name="description" />
 			</p>

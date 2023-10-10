@@ -5,7 +5,7 @@
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import ShortUniqueId from 'short-unique-id';
-	import Keyboard from '../components/Keyboard.svelte';
+	import Keyboard from './Keyboard.svelte';
 	import { Confetti } from 'svelte-confetti';
 	import ToggleConfetti from './ToggleConfetti.svelte';
 	import GuessMarker from '$lib/svg/GuessMarker.svelte';
@@ -83,7 +83,9 @@
 				break;
 			case 'reveal_guesses':
 				revealGuesses = true;
-				proceedToNextRound();
+				setTimeout(() => {
+					proceedToNextRound();
+				}, 5000);
 				break;
 		}
 	}
@@ -154,7 +156,7 @@
 		{:else if userHasToWait}
 			<p>Wait for others to join!</p>
 		{:else if gameFinished}
-			<Dialog isOpen={isGameFinish}>
+			<Dialog isOpen={gameFinished}>
 				<!-- For fields slot -->
 				<div slot="fields">
 					<ul class="leaderboard">
@@ -405,18 +407,5 @@
 		padding: 2px 4px;
 		border-radius: 4px;
 		font-size: 1.1em;
-	}
-
-	button.primary {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--black) !important;
-		height: 50px;
-		width: 60%;
-		color: white;
-		border-radius: 8px;
-		display: flex;
-		gap: 8px;
 	}
 </style>

@@ -8,9 +8,9 @@ import {
 	getNewWord,
 	calculateRankings,
 	hasWordBeenPlayed
-} from './gameLogic.js';
+} from '../src/lib/game/gameLogic.js';
 
-import { getMaxPlayersForRoom, cleanUpState } from './apiUtils.js';
+import { getMaxPlayersForRoom, cleanUpState } from '../src/lib/game/apiUtils.js';
 const maxMoves = 5;
 
 export default class RhymeSession {
@@ -120,35 +120,32 @@ export default class RhymeSession {
 		if (isRoundFinished(gameState, maxMoves)) {
 			// First, broadcast a message to reveal all guess markers.
 			this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
-			this._broadcastSync(connection.id, gameState);
 			this._broadcast({ type: 'reveal_guesses' });
 
 			// After a delay (e.g., 5 seconds), either move to the next round or finish the game.
-			setTimeout(async () => {
-				if (isGameFinished(gameState)) {
-					const rankings = calculateRankings(gameState);
-					const gameStateWithoutRhymes = cleanUpState({ ...gameState });
-					this.progress++;
-					this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
-					this._broadcast({ type: 'game_finished', rankings: rankings });
-					await this._updateSessionData(players, gameStateWithoutRhymes);
-					return;
-				}
-
-				const newWordContainer = await getNewWord('random').catch((error) => {
-					console.error('Error fetching new word:', error);
-				});
-
-				if (newWordContainer) {
-					gameState.words.push(newWordContainer);
-				}
-
-				this.progress++; // Increment the progress
+			if (isGameFinished(gameState)) {
+				const rankings = calculateRankings(gameState);
+				const gameStateWithoutRhymes = cleanUpState({ ...gameState });
+				this.progress++;
 				this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+				this._broadcast({ type: 'game_finished', rankings: rankings });
+				await this._updateSessionData(players, gameStateWithoutRhymes);
+				return;
+			}
 
-				await this._updateSessionData(players, gameState);
-				this._broadcastSync(connection.id, gameState);
-			}, 5000); // 5 seconds delay for the reveal.
+			const newWordContainer = await getNewWord('random').catch((error) => {
+				console.error('Error fetching new word:', error);
+			});
+
+			if (newWordContainer) {
+				gameState.words.push(newWordContainer);
+			}
+
+			this.progress++; // Increment the progress
+			this._broadcast({ type: 'progress', maxMoves: maxMoves, progress: this.progress });
+
+			await this._updateSessionData(players, gameState);
+			this._broadcastSync(connection.id, gameState);
 
 			return;
 		}
@@ -166,6 +163,7 @@ export default class RhymeSession {
 			this._broadcast({ type: 'played_word', word: guessedWord, user: connection.id });
 			return true; // Indicate that the word has already been played
 		}
+
 		const matchingRhymes = currentWord.validRhymes.filter(
 			(validRhyme) => validRhyme.word.toLowerCase().trim() === guessedWord
 		);
@@ -177,6 +175,8 @@ export default class RhymeSession {
 			isValid: isValidRhyme,
 			category: isValidRhyme ? categorizeRhyme(matchingRhymes[0], currentWord.stats) : 'nope'
 		});
+
+		this._broadcastSync(connection.id, gameState); // Add this line to sync the state immediately
 
 		if (!players.includes(connection.id)) {
 			players.push(connection.id);

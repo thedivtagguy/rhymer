@@ -6,3 +6,5 @@ export const onlinePlayers = writable(0);
 
 // Set the stored value or a sane default.
 export const playerNameStore = localStorageStore('player', 'Anonymous');
+
+export const dailyStore = localStorageStore('dailyStore', {});
